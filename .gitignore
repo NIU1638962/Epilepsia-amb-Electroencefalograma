@@ -160,4 +160,4 @@ cython_debug/
 #.idea/
 
 # Data folder with all the patients, too big to upload.
-/data/*
+/Data/*
