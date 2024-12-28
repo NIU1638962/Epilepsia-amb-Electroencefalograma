@@ -43,7 +43,8 @@ def load_seizures(
 
     """
     files = os.listdir(path_root_directory)
-    files = [file for file in files if file.endswith(('.npz', '.parquet'))]
+    files = sorted([file for file in files if file.endswith(
+        ('.npz', '.parquet'))])
     if DEBUG:
         echo(files)
 
