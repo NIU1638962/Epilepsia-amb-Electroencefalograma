@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*- noqa
+"""
+Created on Fri Dec 27 19:31:14 2024
+
+@author: Sergio
+"""
 import os
+import re
+
 import numpy as np
 import pandas as pd
-import re
 
 
 def load_seizures(
