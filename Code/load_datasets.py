@@ -10,13 +10,15 @@ import re
 import numpy as np
 import pandas as pd
 
+from typing import Tuple
+
 from environ import DATA_PATH
 from utils import echo
 
 
 def load_seizures(
         path_root_directory: str
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Load dataset with seizures.
 
