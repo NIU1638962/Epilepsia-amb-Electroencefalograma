@@ -18,7 +18,7 @@ class InputLevelFusion(nn.Module):
             in_channels=num_channels,
             out_channels=1,
             kernel_size=3,
-            padding=1
+            padding=1,
         )
 
         # Extraccion de features con CNN
@@ -27,26 +27,32 @@ class InputLevelFusion(nn.Module):
                 in_channels=1,
                 out_channels=16,
                 kernel_size=3,
-                padding=1
+                padding=1,
             ),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=4),
+            nn.MaxPool1d(
+                kernel_size=4,
+            ),
             nn.Conv1d(
                 in_channels=16,
                 out_channels=32,
                 kernel_size=3,
-                padding=1
+                padding=1,
             ),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=4),
+            nn.MaxPool1d(
+                kernel_size=4,
+            ),
             nn.Conv1d(
                 in_channels=32,
                 out_channels=64,
                 kernel_size=3,
-                padding=1
+                padding=1,
             ),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size=4)
+            nn.MaxPool1d(
+                kernel_size=4,
+            ),
         )
 
         self.flatten = nn.Flatten()
@@ -89,27 +95,35 @@ class FeatureLevelFusion(nn.Module):
                         in_channels=1,
                         out_channels=16,
                         kernel_size=3,
-                        padding=1
+                        padding=1,
                     ),
                     nn.ReLU(),
-                    nn.MaxPool1d(kernel_size=4),
+                    nn.MaxPool1d(
+                        kernel_size=4,
+                    ),
                     nn.Conv1d(
                         in_channels=16,
                         out_channels=32,
                         kernel_size=3,
-                        padding=1
+                        padding=1,
                     ),
                     nn.ReLU(),
-                    nn.MaxPool1d(kernel_size=4),
+                    nn.MaxPool1d(
+                        kernel_size=4,
+                    ),
                     nn.Conv1d(
                         in_channels=32,
                         out_channels=64,
                         kernel_size=3,
-                        padding=1
+                        padding=1,
                     ),
                     nn.ReLU(),
-                    nn.MaxPool1d(kernel_size=4)
-                ) for _ in range(num_channels)
+                    nn.MaxPool1d(
+                        kernel_size=4,
+                    ),
+                ) for _ in range(
+                    num_channels
+                )
             ]
         )
 
