@@ -12,7 +12,7 @@ import pandas as pd
 
 from typing import Tuple
 
-from environ import DATA_PATH
+from environ import DATA_PATH, DEBUG
 from utils import echo
 
 
@@ -44,10 +44,15 @@ def load_seizures(
     """
     files = os.listdir(path_root_directory)
     files = [file for file in files if file.endswith(('.npz', '.parquet'))]
+    if DEBUG:
+        echo(files)
 
     separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
+        if DEBUG:
+            echo(files[i], files[i+1])
+
         patient_df = pd.read_parquet(path_root_directory+files[i+1])
         patient_data_np = np.load(
             path_root_directory+files[i], allow_pickle=True)
@@ -75,6 +80,12 @@ def load_seizures(
         for i in range(filenames_array.shape[0]):
             record = re.split(separadores, filenames_array[i])[1]
             recordings.append(record)
+
+        if DEBUG:
+            echo(windows.shape)
+            echo(classes.shape)
+            echo(patients_ids.shape)
+            echo(len(recordings))
     recordings = np.array(recordings)  # Esto es un array de strings
 
     assert (

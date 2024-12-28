@@ -7,6 +7,10 @@ Created on Sat Dec 28 19:13:43 2024
 import os
 import sys
 
+from utils import echo
+
+DEBUG = True
+
 platform = sys.platform.lower()
 
 user = None
@@ -23,3 +27,6 @@ if user == 'maed02':
     DATA_PATH = '../../../maed/EpilepsyDataSet/'
 else:
     DATA_PATH = '../Data/'
+
+if DEBUG:
+    echo(DATA_PATH)
