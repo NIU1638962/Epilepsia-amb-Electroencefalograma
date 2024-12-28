@@ -40,7 +40,7 @@ def load_seizures(
         1 on 1 to the "windows" array.
 
     """
-    files = os.listdir(path_root_directory)[:4]
+    files = os.listdir(path_root_directory)
     separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
