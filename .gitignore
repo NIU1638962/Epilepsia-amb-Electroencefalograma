@@ -162,3 +162,4 @@ cython_debug/
 # Data with all the patients, too big to upload.
 *.npz
 *.crdownload
+EpilepsyDataSet/

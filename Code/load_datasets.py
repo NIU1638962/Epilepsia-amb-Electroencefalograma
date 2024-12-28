@@ -10,6 +10,8 @@ import re
 import numpy as np
 import pandas as pd
 
+from environ import DATA_PATH
+
 
 def load_seizures(
         path_root_directory: str
@@ -37,7 +39,7 @@ def load_seizures(
         1 on 1 to the "windows" array.
 
     """
-    files = os.listdir(path_root_directory)
+    files = os.listdir(path_root_directory)[:4]
     separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
@@ -80,9 +82,7 @@ def load_seizures(
 
 
 if __name__ == '__main__':
-    windows, classes, patients_ids, recordings = load_seizures(
-        '../Data/'
-    )
+    windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
     print(windows.shape)
     print(classes.shape)
     print(patients_ids.shape)

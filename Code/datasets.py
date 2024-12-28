@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 
 from load_datasets import load_seizures
 
+from environ import DATA_PATH
 
 class SeizuresDataset(Dataset):
     """Torch Dataset with the seizures information loaded."""
@@ -148,7 +149,7 @@ class SeizuresDataset(Dataset):
 
 
 if __name__ == "__main__":
-    dataset = SeizuresDataset('../Data/')
+    dataset = SeizuresDataset(DATA_PATH)
     print(dataset.windows.shape)
     print(dataset.classes.shape)
     print(dataset.patients_ids.shape)
