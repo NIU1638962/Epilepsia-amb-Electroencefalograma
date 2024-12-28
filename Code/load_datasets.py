@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from environ import DATA_PATH
+from utils import echo
 
 
 def load_seizures(
@@ -83,7 +84,7 @@ def load_seizures(
 
 if __name__ == '__main__':
     windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
-    print(windows.shape)
-    print(classes.shape)
-    print(patients_ids.shape)
-    print(recordings.shape)
+    echo(windows.shape)
+    echo(classes.shape)
+    echo(patients_ids.shape)
+    echo(recordings.shape)

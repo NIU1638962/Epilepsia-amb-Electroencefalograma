@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from load_datasets import load_seizures
 
 from environ import DATA_PATH
+from utils import echo
 
 class SeizuresDataset(Dataset):
     """Torch Dataset with the seizures information loaded."""
@@ -150,7 +151,7 @@ class SeizuresDataset(Dataset):
 
 if __name__ == "__main__":
     dataset = SeizuresDataset(DATA_PATH)
-    print(dataset.windows.shape)
-    print(dataset.classes.shape)
-    print(dataset.patients_ids.shape)
-    print(dataset.recordings.shape)
+    echo(dataset.windows.shape)
+    echo(dataset.classes.shape)
+    echo(dataset.patients_ids.shape)
+    echo(dataset.recordings.shape)
