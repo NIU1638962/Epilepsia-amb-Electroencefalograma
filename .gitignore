@@ -161,3 +161,4 @@ cython_debug/
 
 # Data folder with all the patients, too big to upload.
 /Data/*
+*.crdownload
