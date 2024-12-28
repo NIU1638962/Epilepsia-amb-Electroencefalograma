@@ -75,7 +75,8 @@ def load_seizures(
 
 if __name__ == '__main__':
     windows, classes, patients_ids, recordings = load_seizures(
-        '../Data/')
+        '../Data/'
+    )
     print(windows.shape)
     print(classes.shape)
     print(patients_ids.shape)
