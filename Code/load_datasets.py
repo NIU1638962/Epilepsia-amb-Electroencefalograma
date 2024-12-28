@@ -38,6 +38,8 @@ def load_seizures(
 
     """
     files = os.listdir(path_root_directory)
+    files = [file for file in files if file.endswith(('.npz', '.parquet'))]
+
     separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
@@ -48,14 +50,17 @@ def load_seizures(
         patient_id = files[i].split('_')[0][-2:]
         filenames_array = patient_df['filename'].to_numpy()
 
-        patient_windows = patient_data_np['EEG_win']
-        patient_classes = patient_df['class'].to_numpy()
+        patient_windows = patient_data_np['EEG_win'].astype(np.float64)
+        
+        patient_classes = patient_df['class'].to_numpy(dtype=np.int8)
         patient_id_array = np.full(
-            (patient_windows.shape[0],), int(patient_id), dtype=int)
+            (patient_windows.shape[0],), int(patient_id), dtype=np.int8)
         if 'windows' not in locals():     # Primera iteración
             windows = patient_windows
             classes = patient_classes
+            print(classes.dtype)
             patients_ids = patient_id_array
+            print(patients_ids.dtype)
 
         else:
             windows = np.vstack((windows, patient_windows))
@@ -63,8 +68,9 @@ def load_seizures(
             patients_ids = np.hstack((patients_ids, patient_id_array))
 
         for i in range(filenames_array.shape[0]):
-            recordings.append(re.split(separadores, filenames_array[i])[1])
-    recordings = np.array(recordings)
+            record = re.split(separadores, filenames_array[i])[1]
+            recordings.append(record)
+    recordings = np.array(recordings) # Esto es un array de strings
 
     assert (
         (
@@ -84,6 +90,7 @@ if __name__ == '__main__':
         '../Data/'
     )
     print(windows.shape)
+    print(type(windows))
     print(classes.shape)
     print(patients_ids.shape)
     print(recordings.shape)
