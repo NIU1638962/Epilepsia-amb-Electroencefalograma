@@ -69,9 +69,7 @@ def load_seizures(
         if 'windows' not in locals():     # Primera iteración
             windows = patient_windows
             classes = patient_classes
-            print(classes.dtype)
             patients_ids = patient_id_array
-            print(patients_ids.dtype)
 
         else:
             windows = np.vstack((windows, patient_windows))
@@ -87,6 +85,17 @@ def load_seizures(
             echo(classes.shape)
             echo(patients_ids.shape)
             echo(len(recordings))
+
+        assert (
+            (
+                windows.shape[0] == classes.shape[0]
+            ) and (
+                windows.shape[0] == patients_ids.shape[0]
+            ) and (
+                windows.shape[0] == len(recordings)
+            )
+        ), 'Loaded data arrays have not the same 0th dimension shape.'
+
     recordings = np.array(recordings)  # Esto es un array de strings
 
     assert (
