@@ -116,7 +116,7 @@ if __name__ == '__main__':
     windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
     if DEBUG:
         echo('Loaded:')
-        echo(windows.shape, sys.getsizeof(windows))
-        echo(classes.shape, sys.getsizeof(classes))
-        echo(patients_ids.shape, sys.getsizeof(patients_ids))
-        echo(recordings.shape, sys.getsizeof(recordings))
+        echo(windows.shape, str(sys.getsizeof(windows)))
+        echo(classes.shape, str(sys.getsizeof(classes)))
+        echo(patients_ids.shape, str(sys.getsizeof(patients_ids)))
+        echo(recordings.shape, str(sys.getsizeof(recordings)))
