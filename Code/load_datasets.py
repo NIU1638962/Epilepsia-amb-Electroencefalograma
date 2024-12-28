@@ -6,6 +6,7 @@ Created on Fri Dec 27 19:31:14 2024
 """
 import os
 import re
+import sys
 
 import numpy as np
 import pandas as pd
@@ -113,7 +114,9 @@ def load_seizures(
 
 if __name__ == '__main__':
     windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
-    echo(windows.shape)
-    echo(classes.shape)
-    echo(patients_ids.shape)
-    echo(recordings.shape)
+    if DEBUG:
+        echo('Loaded:')
+        echo(windows.shape, sys.getsizeof(windows))
+        echo(classes.shape, sys.getsizeof(classes))
+        echo(patients_ids.shape, sys.getsizeof(patients_ids))
+        echo(recordings.shape, sys.getsizeof(recordings))
