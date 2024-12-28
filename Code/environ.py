@@ -15,6 +15,9 @@ if platform == 'linux':
     user = os.getenv('USER')
 elif platform == 'win32':
     user = os.getenv('USERNAME')
+elif platform == 'darwin':
+    user = os.getenv()  # No se el nombre de la variable de environment "user"
+    # en mac
 
 if user == 'maed02':
     DATA_PATH = '../../../maed/EpilepsyDataSet/'
