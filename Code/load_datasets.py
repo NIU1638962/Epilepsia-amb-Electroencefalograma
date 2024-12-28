@@ -54,7 +54,7 @@ def load_seizures(
         filenames_array = patient_df['filename'].to_numpy()
 
         patient_windows = patient_data_np['EEG_win'].astype(np.float64)
-        
+
         patient_classes = patient_df['class'].to_numpy(dtype=np.int8)
         patient_id_array = np.full(
             (patient_windows.shape[0],), int(patient_id), dtype=np.int8)
@@ -73,7 +73,7 @@ def load_seizures(
         for i in range(filenames_array.shape[0]):
             record = re.split(separadores, filenames_array[i])[1]
             recordings.append(record)
-    recordings = np.array(recordings) # Esto es un array de strings
+    recordings = np.array(recordings)  # Esto es un array de strings
 
     assert (
         (
@@ -89,11 +89,8 @@ def load_seizures(
 
 
 if __name__ == '__main__':
-    windows, classes, patients_ids, recordings = load_seizures(
-        '../Data/'
-    )
-    print(windows.shape)
-    print(type(windows))
-    print(classes.shape)
-    print(patients_ids.shape)
-    print(recordings.shape)
+    windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
+    echo(windows.shape)
+    echo(classes.shape)
+    echo(patients_ids.shape)
+    echo(recordings.shape)
