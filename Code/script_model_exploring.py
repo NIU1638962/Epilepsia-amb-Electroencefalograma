@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- noqa
 """
 Created on Thu May 19 17:26:05 2022
 
@@ -7,8 +6,11 @@ Created on Thu May 19 17:26:05 2022
 """
 
 # Main project directory
+import torch
+
 import numpy as np
-from Models.EpilepsyLSTM import *
+
+from models.epilepsy_lstm import EpilepsyLSTM
 Main_dir = r''
 
 
