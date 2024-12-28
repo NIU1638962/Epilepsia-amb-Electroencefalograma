@@ -10,8 +10,9 @@ from torch.utils.data import Dataset
 
 from load_datasets import load_seizures
 
-from environ import DATA_PATH
+from environ import DATA_PATH, DEBUG
 from utils import echo
+
 
 class SeizuresDataset(Dataset):
     """Torch Dataset with the seizures information loaded."""
@@ -75,7 +76,7 @@ class SeizuresDataset(Dataset):
 ###############################################################################
 #                              Protected Methods                              #
 
-    def __load_data(self): # noqa
+    def __load_data(self):  # noqa
         windows, classes, patients_ids, recordings = load_seizures(
             self.__path_root_directory
         )
@@ -93,7 +94,7 @@ class SeizuresDataset(Dataset):
 ###############################################################################
 #                                  Properties                                 #
 
-    @property # noqa
+    @property  # noqa
     def classes(self) -> Tensor:
         """
         Retrive Torch Tensor with the classes of the windows.
@@ -151,7 +152,8 @@ class SeizuresDataset(Dataset):
 
 if __name__ == "__main__":
     dataset = SeizuresDataset(DATA_PATH)
-    echo(dataset.windows.shape)
-    echo(dataset.classes.shape)
-    echo(dataset.patients_ids.shape)
-    echo(dataset.recordings.shape)
+    if DEBUG:
+        echo(dataset.windows.shape)
+        echo(dataset.classes.shape)
+        echo(dataset.patients_ids.shape)
+        echo(dataset.recordings.shape)
