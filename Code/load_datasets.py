@@ -32,21 +32,21 @@ def load_seizures(
 
     """
     files = os.listdir(path_root_directory)
-    separadores = r"[._]"
+    separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
         patient_df = pd.read_parquet(path_root_directory+files[i+1])
         patient_data_np = np.load(
             path_root_directory+files[i], allow_pickle=True)
 
-        patient_id = files[i].split("_")[0][-2:]
-        filenames_array = patient_df["filename"].to_numpy()
+        patient_id = files[i].split('_')[0][-2:]
+        filenames_array = patient_df['filename'].to_numpy()
 
-        patient_windows = patient_data_np["EEG_win"]
-        patient_classes = patient_df["class"].to_numpy()
+        patient_windows = patient_data_np['EEG_win']
+        patient_classes = patient_df['class'].to_numpy()
         patient_id_array = np.full(
             (patient_windows.shape[0],), int(patient_id), dtype=int)
-        if "windows" not in locals():     # Primera iteración
+        if 'windows' not in locals():     # Primera iteración
             windows = patient_windows
             classes = patient_classes
             patients_ids = patient_id_array
@@ -68,14 +68,14 @@ def load_seizures(
         ) and (
             windows.shape[0] == recordings.shape[0]
         )
-    ), "Loaded data arrays have not the same 0th dimension shape."
+    ), 'Loaded data arrays have not the same 0th dimension shape.'
 
     return windows, classes, patients_ids, recordings
 
 
-if __name__ == "__main":
+if __name__ == '__main__':
     windows, classes, patients_ids, recordings = load_seizures(
-        "../Data/")
+        '../Data/')
     print(windows.shape)
     print(classes.shape)
     print(patients_ids.shape)
