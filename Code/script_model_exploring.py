@@ -10,7 +10,7 @@ import torch
 
 import numpy as np
 
-from models.epilepsy_lstm import EpilepsyLSTM
+from models import EpilepsyLSTM
 Main_dir = r''
 
 
