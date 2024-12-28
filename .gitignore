@@ -159,6 +159,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Data folder with all the patients, too big to upload.
-/Data/*
+# Data with all the patients, too big to upload.
+*.npz
 *.crdownload
