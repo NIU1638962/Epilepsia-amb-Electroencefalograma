@@ -84,7 +84,7 @@ class SeizuresDataset(Dataset):
         self.__windows = from_numpy(windows)
         self.__classes = from_numpy(classes)
         self.__patients_ids = from_numpy(patients_ids)
-        self.__recordings = from_numpy(recordings)
+        self.__recordings = recordings
 
         self.__len = len(self.__windows)
 

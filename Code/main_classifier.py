@@ -3,14 +3,14 @@ from utils import echo
 from train_classifier import train_classifier
 from dataloaders import create_dataloader
 from  backbone import InputLevelFusion, FeatureLevelFusion
-from torch.nn import CrossEntropyLoss, optim
+from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 import torch
 import os
 import gc
 
 
-DIRECTORY_PATH = ""
+DIRECTORY_PATH = "../EpilepsyDataSet"
 DIRECTORY_SAVE_MODELS = "../Trained_models"
 
 def main():
@@ -39,6 +39,8 @@ def main():
 
         optimizer = optim.Adam(model.parameters(), lr=0.001)
         num_epochs = 10
+
+        model.to(device)
 
         model, log_loss = train_classifier(model, loss_func, device, loader, optimizer, num_epochs)
 

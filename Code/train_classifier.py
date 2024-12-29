@@ -66,7 +66,8 @@ def __train_epoch_classifier(
     device,
     loader,
     optimizer,
-    loss_log
+    loss_log,
+    precission
 ):
     running_loss = 0.0
 
@@ -74,6 +75,7 @@ def __train_epoch_classifier(
         inputs = inputs.to(device)
     
         outputs = model(inputs)
+
         loss = loss_func(outputs, targets.to(device))
         
         loss.backward()

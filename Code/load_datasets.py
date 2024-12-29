@@ -55,16 +55,16 @@ def load_seizures(
         if DEBUG:
             echo(files[i], files[i+1])
 
-        patient_df = pd.read_parquet(path_root_directory+files[i+1])
+        patient_df = pd.read_parquet(os.path.join(path_root_directory,files[i+1]))
         patient_data_np = np.load(
-            path_root_directory+files[i], allow_pickle=True)
+            os.path.join(path_root_directory,files[i]), allow_pickle=True)
 
         patient_id = files[i].split('_')[0][-2:]
         filenames_array = patient_df['filename'].to_numpy()
 
-        patient_windows = patient_data_np['EEG_win'].astype(np.float64)
+        patient_windows = patient_data_np['EEG_win'].astype(np.float32)
 
-        patient_classes = patient_df['class'].to_numpy(dtype=np.int8)
+        patient_classes = patient_df['class'].to_numpy(dtype=np.int64)
         patient_id_array = np.full(
             (patient_windows.shape[0],), int(patient_id), dtype=np.int8)
         if 'windows' not in locals():     # Primera iteración
