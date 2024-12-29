@@ -56,7 +56,7 @@ class SeizuresDataset(Dataset):
             Slice of the dataset.
 
         """
-        return self.__windows[index]
+        return self.__windows[index], self.__classes[index]
 
     def __len__(self) -> int:
         """
