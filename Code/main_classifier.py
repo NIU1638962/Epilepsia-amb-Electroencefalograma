@@ -33,7 +33,7 @@ def main():
         if(model_type == "Input"):
             model = InputLevelFusion()
         else:
-            model = FeatureLevelFusion
+            model = FeatureLevelFusion()
 
         loss_func = CrossEntropyLoss()
 
