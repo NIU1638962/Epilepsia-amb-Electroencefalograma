@@ -28,7 +28,7 @@ def train_classifier(
 
         t0 = time.time()
 
-        model, loss_log = __train_epoch_attention(
+        model, loss_log = __train_epoch_classifier(
             model,
             loss_func,
             device,
@@ -60,7 +60,7 @@ def train_classifier(
     return model, loss_log, total_time
 
 
-def __train_epoch_attention(
+def __train_epoch_classifier(
     model,
     loss_func,
     device,
@@ -80,7 +80,7 @@ def __train_epoch_attention(
         running_loss += loss.item()
         optimizer.step()
         optimizer.zero_grad()
-        
+
     epoch_loss = running_loss/len(loader)
     echo(f'{"Train"} Loss:{epoch_loss:.4f}')
     loss_log["train"].append(epoch_loss)
