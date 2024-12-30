@@ -84,13 +84,15 @@ def train_classifier(
         #     if abs(loss_log['train'][-2] - loss_log['train'][-1]) < precission:
         #         break
 
-        echo(f'Epoch elapsed time: {epoch_time:.4f}s \n')
+        echo(f'Epoch elapsed time: {epoch_time:.4f}s')
 
         total_time += epoch_time
 
         torch.cuda.empty_cache()
 
-    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch}')
+    echo('')
+    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch} '
+         + f'after {total_time}s')
     model.load_state_dict(best_model_wts)
     loss_log['total_time'] = total_time
     return model, loss_log

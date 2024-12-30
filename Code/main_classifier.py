@@ -42,6 +42,8 @@ def main():
         'Feature Level Fusion': FeatureLevelFusion,
     }
 
+    echo('\n')
+
     echo('READING DATASET')
 
     data = SeizuresDataset(DATA_PATH)
@@ -52,10 +54,12 @@ def main():
 
     echo('DATASET READ')
 
+    echo('')
+
     losses = []
 
     for model_type, model in models.items():
-        echo('\n')
+        echo('')
         echo(f'Training {model_type} Model:')
 
         model = model()
@@ -87,6 +91,8 @@ def main():
         )
 
         losses.append(log_loss)
+
+        del model
 
         gc.collect()
         torch.cuda.empty_cache()
