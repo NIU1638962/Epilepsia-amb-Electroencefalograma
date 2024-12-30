@@ -42,20 +42,24 @@ def main():
         'Feature Level Fusion': FeatureLevelFusion,
     }
 
+    echo('\n')
+
     echo('READING DATASET')
 
     data = SeizuresDataset(DATA_PATH)
 
-    batch_size = 32
+    batch_size = 1024
 
     loader = create_dataloader(data, batch_size)
 
     echo('DATASET READ')
 
+    echo('')
+
     losses = []
 
     for model_type, model in models.items():
-        echo('\n')
+        echo('')
         echo(f'Training {model_type} Model:')
 
         model = model()
@@ -63,7 +67,7 @@ def main():
         loss_func = CrossEntropyLoss()
 
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        num_epochs = 10
+        num_epochs = 50
 
         model.to(device)
 
@@ -87,6 +91,8 @@ def main():
         )
 
         losses.append(log_loss)
+
+        del model
 
         gc.collect()
         torch.cuda.empty_cache()
