@@ -48,7 +48,7 @@ def main():
 
     data = SeizuresDataset(DATA_PATH)
 
-    batch_size = 32
+    batch_size = 1024
 
     loader = create_dataloader(data, batch_size)
 
