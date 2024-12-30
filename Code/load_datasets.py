@@ -8,10 +8,10 @@ import os
 import re
 import sys
 
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
-
-from typing import Tuple
 
 from environ import DATA_PATH, DEBUG
 from utils import echo
@@ -47,17 +47,22 @@ def load_seizures(
     files = sorted([file for file in files if file.endswith(
         ('.npz', '.parquet'))])
     if DEBUG:
-        echo(files)
+        echo(f'Files to read: {files}')
 
     separadores = r'[._]'
     recordings = []
     for i in range(0, len(files), 2):
         if DEBUG:
-            echo(files[i], files[i+1])
+            echo('-' * 10)
+            echo(f'Reading: "{files[i]}" and "{files[i+1]}"')
 
-        patient_df = pd.read_parquet(os.path.join(path_root_directory,files[i+1]))
+        patient_df = pd.read_parquet(
+            os.path.join(path_root_directory, files[i+1]),
+        )
         patient_data_np = np.load(
-            os.path.join(path_root_directory,files[i]), allow_pickle=True)
+            os.path.join(path_root_directory, files[i]),
+            allow_pickle=True,
+        )
 
         patient_id = files[i].split('_')[0][-2:]
         filenames_array = patient_df['filename'].to_numpy()
@@ -82,10 +87,10 @@ def load_seizures(
             recordings.append(record)
 
         if DEBUG:
-            echo(windows.shape)
-            echo(classes.shape)
-            echo(patients_ids.shape)
-            echo(len(recordings))
+            echo(f'Windows shape: {windows.shape}')
+            echo(f'Classes shape: {classes.shape}')
+            echo(f'Patients ID shape: {patients_ids.shape}')
+            echo(f'Recodings length: {len(recordings)}')
 
         assert (
             (

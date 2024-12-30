@@ -11,22 +11,36 @@ from utils import echo
 
 DEBUG = True
 
-platform = sys.platform.lower()
+PLATFORM = sys.platform.lower()
 
-user = None
+USER = ''
 
-if platform == 'linux':
-    user = os.getenv('USER')
-elif platform == 'win32':
-    user = os.getenv('USERNAME')
-elif platform == 'darwin':
-    user = os.getenv()  # No se el nombre de la variable de environment "user"
-    # en mac
+if PLATFORM == 'linux':
+    USER = os.getenv('USER')
+elif PLATFORM == 'win32':
+    USER = os.getenv('USERNAME')
+elif PLATFORM == 'darwin':
+    USER = os.getenv('')  # No se el nombre de la variable de environment
+    # "user" en mac
 
-if user == 'maed02':
+USER.lower()
+
+if USER == 'maed02':
     DATA_PATH = '../../../maed/EpilepsyDataSet/'
+    RESULTS_PATH = '../Results/'
+    TRAINED_MODELS_PATH = '../Trained Models/'
+elif USER == 'joanb':
+    DATA_PATH = "../EpilepsyDataSet"
+    RESULTS_PATH = '../Results/'
+    TRAINED_MODELS_PATH = '../Trained Models/'
 else:
     DATA_PATH = '../Data/'
+    RESULTS_PATH = '../Results/'
+    TRAINED_MODELS_PATH = '../Trained Models/'
 
 if DEBUG:
-    echo(DATA_PATH)
+    echo(f'Platform: "{PLATFORM}"')
+    echo(f'User: "{USER}"')
+    echo(f'Path to data: "{DATA_PATH}"')
+    echo(f'Path to results: "{RESULTS_PATH}"')
+    echo(f'Path to trained models: "{TRAINED_MODELS_PATH}"')

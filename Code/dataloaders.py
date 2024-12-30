@@ -24,7 +24,7 @@ def create_dataloader(dataset: Dataset, batch: int) -> DataLoader:
         Torch DataLoader that implements the batch itself.
 
     """
-    #if not issubclass(dataset, Dataset):
+    # if not issubclass(dataset, Dataset):
     #    raise TypeError('"dataset" is not a subclass of Torch Dataset.')
 
     return DataLoader(dataset, batch_size=batch, shuffle=True)
