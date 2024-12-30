@@ -5,6 +5,7 @@ Created on Sat Dec 28 15:27:34 2024
 @author: Joel Tapia Salvador
 """
 
+import numpy as np
 from torch import from_numpy, Tensor
 from torch.utils.data import Dataset
 
@@ -20,10 +21,14 @@ class SeizuresDataset(Dataset):
     __slots__ = (
         "__classes",
         "__len",
+        "__len_pat",
+        "__len_rec",
         "__path_root_directory",
-        "__patients_ids",
-        "__recordings",
+        "__patient_start_idx",
+        "__recordings_start_idx",
         "__windows",
+        "__patient_out",
+        "__is_lstm"
     )
 
 ###############################################################################
@@ -33,12 +38,15 @@ class SeizuresDataset(Dataset):
         self.__path_root_directory = path_root_directory
 
         self.__classes = Tensor()
-        self.__patients_ids = Tensor()
-        self.__recordings = Tensor()
+        self.__patient_start_idx = np.ndarray()
+        self.__recordings_start_idx = np.ndarray()
         self.__windows = Tensor()
 
         self.__len = 0
-
+        self.__len_pat = 0
+        self.__len_rec = 0
+        self.__patient_out = None
+        self.__is_lstm = False
         self.__load_data()
 
     def __getitem__(self, index: Tensor) -> Tensor:
@@ -56,6 +64,15 @@ class SeizuresDataset(Dataset):
             Slice of the dataset.
 
         """
+        #cuando sea lstm entrara un tensor con los indices de recordings que quiere devolver.
+        #la logica externa contara con una longitud del vector de recordings menor a la real.
+        #por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
+        #en la medida de recordings de este paciente para coger los windows correspondientes.
+        
+        if self.__is_lstm:
+            pass
+            
+        
         return self.__windows[index], self.__classes[index]
 
     def __len__(self) -> int:
@@ -65,10 +82,33 @@ class SeizuresDataset(Dataset):
         Returns
         -------
         integer
-            Length.
+            Length of windows or recordings dependin on is_lstm.
 
         """
-        return self.__len
+        if self.__is_lstm:
+            # calculamos el numero de recordings del paciente de test y las restamos al total
+            idx1 = np.where(self.__recordings_start_idx == self.__patient_start_idx[self.__patient_out])
+            
+            if self.__patient_out == self.__len_pat - 1:
+                idx2 = self.__len_rec - 1
+                
+            else:
+                idx2 = np.where(self.__recordings_start_idx == self.__patient_start_idx[self.__patient_out+1])
+                
+            patient_out_recordings = idx2 - idx1
+            return self.len__rec - patient_out_recordings
+        
+        # calculamos el numero de windows del paciente de test y las restamos al total
+        idx1 = self.__patient_start_idx[self.__patient_out]
+        
+        if self.__patient_out == self.__len_pat - 1:
+            idx2 = self.__len - 1
+            
+        else:
+            idx2 = self.__patient_start_idx[self.__patient_out+1]
+        
+        patient_out_wins = idx2 - idx1
+        return self.__len - patient_out_wins
 
 ###############################################################################
 
@@ -77,23 +117,72 @@ class SeizuresDataset(Dataset):
 #                              Protected Methods                              #
 
     def __load_data(self):  # noqa
-        windows, classes, patients_ids, recordings = load_seizures(
+        windows, classes, patient_start_idx, recordings_start_idx = load_seizures(
             self.__path_root_directory
         )
 
         self.__windows = from_numpy(windows)
         self.__classes = from_numpy(classes)
-        self.__patients_ids = from_numpy(patients_ids)
-        self.__recordings = recordings
+        self.__patient_start_idx = patient_start_idx
+        self.__recordings_start_idx = recordings_start_idx
 
         self.__len = len(self.__windows)
+        self.__len_pat = len(self.__patient_start_idx)
+        self.__len_rec = len(self.__recordings_start_idx)
 
 ###############################################################################
 
 
 ###############################################################################
 #                                  Properties                                 #
+    @property  # noqa
+    def patient_out(self) -> int:
+        """
+        Retrive Int with the patient being left out of train set.
 
+        Returns
+        -------
+        Int
+            Int indicating which patient is being left out in the actual fold.
+
+        """
+        return self.__patient_out
+    
+    @patient_out.setter
+    def patient_out(self, new_patient):
+        """
+        Set new patient to be left out of train set
+
+        Args:
+            new_patient (_type_): _description_
+        """
+        self.__patient_out = new_patient
+        
+    @property  # noqa
+    def is_lstm(self) -> bool:
+        """
+        Retrive Bool True if training lstm.
+
+        Returns
+        -------
+        Bool
+            Bool indicating if a lstm model is being trained.
+
+        """
+        return self.__is_lstm
+    
+    @is_lstm.setter
+    def is_lstm(self, new_is_lstm):
+        """
+        Set new lstm training state
+
+        Args:
+        -------
+        bool
+            new_is_lstm: state of a lstm model being trained
+        """
+        self.__is_lstm = new_is_lstm
+    
     @property  # noqa
     def classes(self) -> Tensor:
         """

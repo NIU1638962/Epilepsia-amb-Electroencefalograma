@@ -50,7 +50,11 @@ def load_seizures(
         echo(f'Files to read: {files}')
 
     separadores = r'[._]'
-    recordings = []
+    unique_recordings = 0
+    recording_count = 0    
+    patient_start_win = [0]
+    recording_start_win = [0]
+    
     for i in range(0, len(files), 2):
         if DEBUG:
             echo('-' * 10)
@@ -59,69 +63,73 @@ def load_seizures(
         patient_df = pd.read_parquet(
             os.path.join(path_root_directory, files[i+1]),
         )
+        
         patient_data_np = np.load(
             os.path.join(path_root_directory, files[i]),
             allow_pickle=True,
         )
 
-        patient_id = files[i].split('_')[0][-2:]
         filenames_array = patient_df['filename'].to_numpy()
+        unique_recordings += len(np.unique(filenames_array))
 
         patient_windows = patient_data_np['EEG_win'].astype(np.float32)
 
         patient_classes = patient_df['class'].to_numpy(dtype=np.int64)
-        patient_id_array = np.full(
-            (patient_windows.shape[0],), int(patient_id), dtype=np.int8)
+        
         if 'windows' not in locals():     # Primera iteración
             windows = patient_windows
             classes = patient_classes
-            patients_ids = patient_id_array
 
         else:
+            patient_start_win.append(len(windows))
             windows = np.vstack((windows, patient_windows))
             classes = np.hstack((classes, patient_classes))
-            patients_ids = np.hstack((patients_ids, patient_id_array))
-
+            
         for i in range(filenames_array.shape[0]):
-            record = re.split(separadores, filenames_array[i])[1]
-            recordings.append(record)
-
+            new_record = re.split(separadores, filenames_array[i])[1]
+            
+            if 'last_record' not in locals():
+                pass
+            
+            elif new_record != last_record:
+                recording_start_win.append(recording_count)
+                
+            recording_count += 1
+            last_record = new_record
+        
         if DEBUG:
             echo(f'Windows shape: {windows.shape}')
             echo(f'Classes shape: {classes.shape}')
-            echo(f'Patients ID shape: {patients_ids.shape}')
-            echo(f'Recodings length: {len(recordings)}')
+            echo(f'Patients starting position lenght: {len(patient_start_win)}')
+            echo(f'Recodings starting position length: {len(recording_start_win)}')
 
-        assert (
-            (
-                windows.shape[0] == classes.shape[0]
-            ) and (
-                windows.shape[0] == patients_ids.shape[0]
-            ) and (
-                windows.shape[0] == len(recordings)
-            )
+        assert (  
+                windows.shape[0] == classes.shape[0] 
         ), 'Loaded data arrays have not the same 0th dimension shape.'
-
-    recordings = np.array(recordings)  # Esto es un array de strings
+        
+    patient_start_win = np.array(patient_start_win)  # Esto es un array de ints
+    recording_start_win = np.array(recording_start_win)  # Esto es un array de ints
 
     assert (
-        (
             windows.shape[0] == classes.shape[0]
-        ) and (
-            windows.shape[0] == patients_ids.shape[0]
-        ) and (
-            windows.shape[0] == recordings.shape[0]
-        )
     ), 'Loaded data arrays have not the same 0th dimension shape.'
+    
+    assert (
+            len(recording_start_win) == unique_recordings
+    ),  'The number of unique recordings registered does not correspond to the real number of unique recordings.'
 
-    return windows, classes, patients_ids, recordings
+    assert (
+            np.all(np.isin(patient_start_win, recording_start_win))
+    ),  'The starting positions of the recordings and the patients do not correspond.'
+    
+    return windows, classes, patient_start_win, recording_start_win
 
 
 if __name__ == '__main__':
-    windows, classes, patients_ids, recordings = load_seizures(DATA_PATH)
+    windows, classes, patient_start_win, recording_start_win = load_seizures(DATA_PATH)
     if DEBUG:
         echo('Loaded:')
         echo(windows.shape, str(sys.getsizeof(windows)))
         echo(classes.shape, str(sys.getsizeof(classes)))
-        echo(patients_ids.shape, str(sys.getsizeof(patients_ids)))
-        echo(recordings.shape, str(sys.getsizeof(recordings)))
+        echo(patient_start_win.shape, str(sys.getsizeof(patient_start_win)))
+        echo(recording_start_win.shape, str(sys.getsizeof(recording_start_win)))
