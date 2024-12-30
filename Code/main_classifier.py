@@ -67,7 +67,7 @@ def main():
         loss_func = CrossEntropyLoss()
 
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        num_epochs = 10
+        num_epochs = 50
 
         model.to(device)
 
