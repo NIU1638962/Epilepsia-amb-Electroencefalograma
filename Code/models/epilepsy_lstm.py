@@ -71,3 +71,62 @@ class EpilepsyLSTM(nn.Module):
         x = self.fc(out)
 
         return x
+
+
+class EpilepsyLSTMBB(nn.Module):
+    def __init__(self, inputmodule_params, net_params, outmodule_params):
+        super().__init__()
+
+        print('Running class: ', self.__class__.__name__)
+
+        n_nodes = inputmodule_params['n_nodes']
+
+        Lstacks = net_params['Lstacks']
+        dropout = net_params['dropout']
+        hidden_size = net_params['hidden_size']
+
+        n_classes = outmodule_params['n_classes']
+        hd = outmodule_params['hd']
+
+        self.inputmodule_params = inputmodule_params
+        self.net_params = net_params
+        self.outmodule_params = outmodule_params
+
+        # NETWORK ARCHITECTURE
+        # IF batch_first THEN (batch, timesteps, features), ELSE (timesteps, batch, features)
+        self.lstm = nn.LSTM(input_size=n_nodes,  # the number of expected features (out of convs)
+                            hidden_size=hidden_size,  # the number of features in the hidden state h
+                            num_layers=Lstacks,  # number of stacked lstms
+                            batch_first=True,
+                            bidirectional=False,
+                            dropout=dropout)
+
+        self.fc = nn.Sequential(nn.Linear(hidden_size, hd),
+                                nn.ReLU(),
+                                nn.Linear(hd, n_classes)
+                                )
+        self.flatten = nn.flatten()
+
+
+    def init_weights(self):
+        init_weights_xavier_normal(self)
+
+    def forward(self, x, hn = None, cn = None):
+        # input [batch = 1, timesteps(windows) = 1, features] ([N, M, 128])
+
+        if(hn is None):
+            out, (hn, cn) = self.lstm(x)
+        else:
+            out, (hn, cn) = self.lstm(x, (hn, cn)) 
+
+        # LSTM Processing
+        
+        # out is [batch = 1, timesteps(windows) = 1, hidden_size] for last stack output
+        out = self.flatten(out)
+
+        # out = [batch = 1, hidden_size]
+
+        # Output Classification (Class Probabilities)
+        x = self.fc(out)
+
+        return x, hn, cn

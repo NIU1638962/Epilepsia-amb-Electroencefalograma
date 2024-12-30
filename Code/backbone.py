@@ -79,6 +79,26 @@ class InputLevelFusion(nn.Module):
         x = self.fc(x)
 
         return x
+    
+    def get_embeddings(self, x: Tensor) -> Tensor:
+        """
+        Forward propagation.
+
+        Parameters
+        ----------
+        x : Torch Tensor
+            Torch tensor with input data.
+
+        Returns
+        -------
+        x : Torch Tensor
+            Torch tensor with output data.
+
+        """
+        x = self.feature_fusion(x)
+        x = self.channel_projection(x)
+        x = self.flatten(x)
+        return x
 
 
 class FeatureLevelFusion(nn.Module):
@@ -167,3 +187,34 @@ class FeatureLevelFusion(nn.Module):
         x = self.fc(x)
 
         return x
+    
+    def get_embeddings(self, x: Tensor) -> Tensor:
+        """
+        Forward propagation.
+
+        Parameters
+        ----------
+        x : Torch Tensor
+            Torch tensor with input data.
+
+        Returns
+        -------
+        x : Torch Tensor
+            Torch tensor with output data.
+
+        """
+        channel_features = []
+        for i in range(x.shape[1]):
+            channel = x[:, i, :].unsqueeze(1)
+            channel_feature = self.channel_feature_extractors[i](channel)
+            channel_features.append(channel_feature)
+
+        # Concatenar características de todos los canales
+        x = cat(channel_features, dim=1)
+
+        # Fusionar características
+        x = self.feature_fusion(x)
+        x = self.flatten(x)
+
+        return x
+
