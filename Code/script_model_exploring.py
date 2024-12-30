@@ -33,7 +33,7 @@ def get_default_hyperparameters():
     inputmodule_params['n_nodes'] = 21
 
     # LSTM unit  parameters
-    net_params['Lstacks'] = 1  # stacked layers (num_layers)
+    net_params['l_stacks'] = 1  # stacked layers (num_layers)
     net_params['dropout'] = 0.0
     net_params['hidden_size'] = 256  # h
 

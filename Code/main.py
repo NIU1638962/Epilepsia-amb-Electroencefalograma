@@ -12,12 +12,11 @@ from datetime import datetime, timezone
 import torch
 
 from torch.nn import CrossEntropyLoss
-
-from backbone import InputLevelFusion, FeatureLevelFusion
 from dataloaders import create_dataloader
 from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG, RESULTS_PATH, TRAINED_MODELS_PATH, USER
-from train_classifier import train_classifier
+from models import EpilepsyLSTMBB, FeatureLevelFusion, InputLevelFusion
+from train import train_classifier, train_lstm
 from utils import echo, plot_multiple_losses
 
 
@@ -103,7 +102,7 @@ def main():
             RESULTS_PATH,
             f'{USER} {time} Losses.png'
         ),
-        'Backbone Classifier',
+        f'Backbone Classifier ({batch_size})',
     )
 
 

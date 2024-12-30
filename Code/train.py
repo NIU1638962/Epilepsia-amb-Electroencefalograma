@@ -84,13 +84,14 @@ def train_classifier(
         #     if abs(loss_log['train'][-2] - loss_log['train'][-1]) < precission:
         #         break
 
-        echo(f'Epoch elapsed time: {epoch_time:.4f}s \n')
+        echo(f'Epoch elapsed time: {epoch_time:.4f}s')
 
         total_time += epoch_time
 
         torch.cuda.empty_cache()
 
-    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch}')
+    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch} '
+         + f'after {total_time}s')
     model.load_state_dict(best_model_wts)
     loss_log['total_time'] = total_time
     return model, loss_log
@@ -130,8 +131,8 @@ def __train_epoch_classifier(
 
 
 def train_lstm(
-        BB,
-        LSTM,
+        bb,
+        lstm,
         loss_func,
         device,
         loader,
@@ -170,33 +171,33 @@ def train_lstm(
     """
     loss_log = {"train": []}
     total_time = 0
-    best_model_wts = deepcopy(LSTM.state_dict())
+    best_model_wts = deepcopy(lstm.state_dict())
     best_loss = sys.maxsize
     best_epoch = None
-    LSTM.train()
-    BB.eval()
+    lstm.train()
+    bb.eval()
     for epoch in range(1, num_epochs+1):
         echo('-' * 10)
         echo(f'Epoch {epoch}/{num_epochs}')
 
         t0 = time.time()
 
-        LSTM, loss_log = __train_epoch_classifier(
-            BB,
-            LSTM,
+        lstm, loss_log = __train_epoch_lstm(
+            bb,
+            lstm,
             loss_func,
             device,
             loader,
             optimizer,
             loss_log,
-            window_batch
+            window_batch,
         )
 
         epoch_time = time.time() - t0
 
         if loss_log['train'][-1] < best_loss:
             best_loss = loss_log['train'][-1]
-            best_model_wts = deepcopy(model.state_dict())
+            best_model_wts = deepcopy(lstm.state_dict())
             best_epoch = epoch
 
         # if (epoch > 2):
@@ -209,15 +210,16 @@ def train_lstm(
 
         torch.cuda.empty_cache()
 
-    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch}')
-    LSTM.load_state_dict(best_model_wts)
+    echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch} '
+         + f'after {total_time}s')
+    lstm.load_state_dict(best_model_wts)
     loss_log['total_time'] = total_time
-    return LSTM, loss_log
+    return lstm, loss_log
 
 
-def __train_epoch_LSTM(
-    BB,
-    LSTM,
+def __train_epoch_lstm(
+    bb,
+    lstm,
     loss_func,
     device,
     loader,
@@ -229,29 +231,30 @@ def __train_epoch_LSTM(
 
     for idx, (windows, targets) in enumerate(loader):
 
-        windows = BB.get_embeddings(windows)
+        windows = bb.get_embeddings(windows)
 
-        hn, cn = None
-        for nw, (input, target) in enumerate(zip(windows, targets)):
-            input.to(device)
+        hn = None
+        cn = None
 
-            output, hn, cn = LSTM(input, hn, cn)
+        for nw, (inputs, target) in enumerate(zip(windows, targets)):
+            inputs.to(device)
+
+            output, hn, cn = lstm(inputs, hn, cn)
             loss = loss_func(output, target.to(device))
             loss.backward()
             running_loss += loss.item()
-            if(nw % window_batch == 0):
+            if nw % window_batch == 0:
                 optimizer.step()
                 optimizer.zero_grad()
-                del input, output, loss, target
+                del inputs, output, loss, target
                 gc.collect()
                 torch.cuda.empty_cache()
-        if(nw % window_batch != 0):
+        if nw % window_batch != 0:
             optimizer.step()
             optimizer.zero_grad()
-
 
     epoch_loss = running_loss/len(loader)
     echo(f'{"Train"} Loss: {epoch_loss:.4f}')
     loss_log["train"].append(epoch_loss)
 
-    return LSTM, loss_log
+    return lstm, loss_log

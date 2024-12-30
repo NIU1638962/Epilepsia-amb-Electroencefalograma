@@ -4,20 +4,15 @@ Created on Fri May 13 16:12:08 2022
 
 @author: Guillermo Torres
 """
-import torch.nn as nn
+from typing import Tuple
+
+from torch import nn, Tensor
 
 from .model_weights_init import init_weights_xavier_normal
 
 
 class EpilepsyLSTM(nn.Module):
-    """
-    Implementation:
-        A channel independent generalized seizure detection method for pediatric epileptic seizures
-        batch_size 600
-        epochs 1000
-        lr = 1e-4
-        optmizer Adam
-    """
+    """Epileptsy LSTM with plain window, considering a it as a temporal."""
 
     def __init__(self, inputmodule_params, net_params, outmodule_params):
         super().__init__()
@@ -27,7 +22,7 @@ class EpilepsyLSTM(nn.Module):
         # NETWORK PARAMETERS
         n_nodes = inputmodule_params['n_nodes']
 
-        Lstacks = net_params['Lstacks']
+        Lstacks = net_params['l_stacks']
         dropout = net_params['dropout']
         hidden_size = net_params['hidden_size']
 
@@ -53,16 +48,37 @@ class EpilepsyLSTM(nn.Module):
                                 )
 
     def init_weights(self):
+        """
+        Initializate weights.
+
+        Returns
+        -------
+        None.
+
+        """
         init_weights_xavier_normal(self)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Forward propagation.
 
+        Parameters
+        ----------
+        x : Torch Tensor
+            Torch tensor with input data.
+
+        Returns
+        -------
+        x : Torch Tensor
+            Torch tensor with output data.
+
+        """
         # Reshape input
         # input [batch, features (=n_nodes), sequence_length (T)] ([N, 21, 640])
         x = x.permute(0, 2, 1)  # lstm  [batch, sequence_length, features]
 
         # LSTM Processing
-        out, (hn, cn) = self.lstm(x)
+        out, (_, _) = self.lstm(x)
         # out is [batch, sequence_length, hidden_size] for last stack output
         # hn and cn are [1, batch, hidden_size]
         out = out[:, -1, :]  # hT state of lenght hidden_size
@@ -74,6 +90,8 @@ class EpilepsyLSTM(nn.Module):
 
 
 class EpilepsyLSTMBB(nn.Module):
+    """Epileptsy LSTM with features of windows extracted using a backbone."""
+
     def __init__(self, inputmodule_params, net_params, outmodule_params):
         super().__init__()
 
@@ -81,7 +99,7 @@ class EpilepsyLSTMBB(nn.Module):
 
         n_nodes = inputmodule_params['n_nodes']
 
-        Lstacks = net_params['Lstacks']
+        Lstacks = net_params['l_stacks']
         dropout = net_params['dropout']
         hidden_size = net_params['hidden_size']
 
@@ -105,22 +123,56 @@ class EpilepsyLSTMBB(nn.Module):
                                 nn.ReLU(),
                                 nn.Linear(hd, n_classes)
                                 )
-        self.flatten = nn.flatten()
-
+        self.flatten = nn.Flatten()
 
     def init_weights(self):
+        """
+        Initializate weights.
+
+        Returns
+        -------
+        None.
+
+        """
         init_weights_xavier_normal(self)
 
-    def forward(self, x, hn = None, cn = None):
+    def forward(
+            self,
+            x: Tensor,
+            hn: Tensor = None,
+            cn: Tensor = None,
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """
+        Forward propagation.
+
+        Parameters
+        ----------
+        x : Torch Tensor
+            Torch tensor with input data.
+        hn : Torch Tensor, optional
+            Torch tensor with input hidden state. The default is None.
+        cn : Torch Tensor, optional
+            Torch tensor with input cell state. The default is None.
+
+        Returns
+        -------
+        x : Torch Tensor
+            Torch tensor with output data.
+        hn : Torch Tensor
+            Torch tensor with output hidden state.
+        cn : Torch Tensor
+            Torch tensor with output cell state.
+
+        """
         # input [batch = 1, timesteps(windows) = 1, features] ([N, M, 128])
 
-        if(hn is None):
+        if hn is None:
             out, (hn, cn) = self.lstm(x)
         else:
-            out, (hn, cn) = self.lstm(x, (hn, cn)) 
+            out, (hn, cn) = self.lstm(x, (hn, cn))
 
         # LSTM Processing
-        
+
         # out is [batch = 1, timesteps(windows) = 1, hidden_size] for last stack output
         out = self.flatten(out)
 
