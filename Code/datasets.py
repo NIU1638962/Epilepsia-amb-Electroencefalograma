@@ -64,15 +64,14 @@ class SeizuresDataset(Dataset):
             Slice of the dataset.
 
         """
-        #cuando sea lstm entrara un tensor con los indices de recordings que quiere devolver.
-        #la logica externa contara con una longitud del vector de recordings menor a la real.
-        #por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
-        #en la medida de recordings de este paciente para coger los windows correspondientes.
-        
+        # cuando sea lstm entrara un tensor con los indices de recordings que quiere devolver.
+        # la logica externa contara con una longitud del vector de recordings menor a la real.
+        # por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
+        # en la medida de recordings de este paciente para coger los windows correspondientes.
+
         if self.__is_lstm:
             pass
-            
-        
+
         return self.__windows[index], self.__classes[index]
 
     def __len__(self) -> int:
@@ -86,27 +85,36 @@ class SeizuresDataset(Dataset):
 
         """
         if self.__is_lstm:
-            # calculamos el numero de recordings del paciente de test y las restamos al total
-            idx1 = np.where(self.__recordings_start_idx == self.__patient_start_idx[self.__patient_out])
-            
+            if self.__patient_out is None:
+                return self.__len_rec
+            # Calculate the number of recordings of the patient of test and
+            # we substract it from the total number of recordings
+            idx1 = np.where(self.__recordings_start_idx ==
+                            self.__patient_start_idx[self.__patient_out])
+
             if self.__patient_out == self.__len_pat - 1:
                 idx2 = self.__len_rec - 1
-                
+
             else:
-                idx2 = np.where(self.__recordings_start_idx == self.__patient_start_idx[self.__patient_out+1])
-                
+                idx2 = np.where(self.__recordings_start_idx ==
+                                self.__patient_start_idx[self.__patient_out+1])
+
+            if self.__patient_out is None:
+                return self.__len
+
             patient_out_recordings = idx2 - idx1
             return self.len__rec - patient_out_recordings
-        
-        # calculamos el numero de windows del paciente de test y las restamos al total
+
+        # Calculate the number of windows of the patient of test and
+        # we substract it from the total number of windows
         idx1 = self.__patient_start_idx[self.__patient_out]
-        
+
         if self.__patient_out == self.__len_pat - 1:
             idx2 = self.__len - 1
-            
+
         else:
             idx2 = self.__patient_start_idx[self.__patient_out+1]
-        
+
         patient_out_wins = idx2 - idx1
         return self.__len - patient_out_wins
 
@@ -115,6 +123,7 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                              Protected Methods                              #
+
 
     def __load_data(self):  # noqa
         windows, classes, patient_start_idx, recordings_start_idx = load_seizures(
@@ -135,6 +144,7 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                                  Properties                                 #
+
     @property  # noqa
     def patient_out(self) -> int:
         """
@@ -147,7 +157,7 @@ class SeizuresDataset(Dataset):
 
         """
         return self.__patient_out
-    
+
     @patient_out.setter
     def patient_out(self, new_patient):
         """
@@ -157,7 +167,7 @@ class SeizuresDataset(Dataset):
             new_patient (_type_): _description_
         """
         self.__patient_out = new_patient
-        
+
     @property  # noqa
     def is_lstm(self) -> bool:
         """
@@ -170,7 +180,7 @@ class SeizuresDataset(Dataset):
 
         """
         return self.__is_lstm
-    
+
     @is_lstm.setter
     def is_lstm(self, new_is_lstm):
         """
@@ -182,7 +192,7 @@ class SeizuresDataset(Dataset):
             new_is_lstm: state of a lstm model being trained
         """
         self.__is_lstm = new_is_lstm
-    
+
     @property  # noqa
     def classes(self) -> Tensor:
         """
