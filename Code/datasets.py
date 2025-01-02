@@ -20,15 +20,19 @@ class SeizuresDataset(Dataset):
 
     __slots__ = (
         "__classes",
+        "__is_lstm",
+        "__is_personalized",
+        "__jump_amount",
+        "__jump_index",
         "__len",
-        "__len_pat",
-        "__len_rec",
+        "__len_patients",
+        "__len_recordings",
+        "__len_windows",
         "__path_root_directory",
-        "__patient_start_idx",
-        "__recordings_start_idx",
+        "__patient",
+        "__patient_start_idexes",
+        "__recordings_start_idexes",
         "__windows",
-        "__patient_out",
-        "__is_lstm"
     )
 
 ###############################################################################
@@ -38,16 +42,21 @@ class SeizuresDataset(Dataset):
         self.__path_root_directory = path_root_directory
 
         self.__classes = Tensor()
-        self.__patient_start_idx = np.ndarray()
-        self.__recordings_start_idx = np.ndarray()
+        self.__patient_start_idexes = np.ndarray()
+        self.__recordings_start_idexes = np.ndarray()
         self.__windows = Tensor()
 
         self.__len = 0
-        self.__len_pat = 0
-        self.__len_rec = 0
-        self.__patient_out = None
+        self.__len_patients = 0
+        self.__len_recordings = 0
+        self.__len_windows = 0
+
+        self.__patient = None
         self.__is_lstm = False
+        self.__is_personalized = False
+
         self.__load_data()
+        self.__calculate_internal_indexes()
 
     def __getitem__(self, index: Tensor) -> Tensor:
         """
@@ -69,8 +78,9 @@ class SeizuresDataset(Dataset):
         # por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
         # en la medida de recordings de este paciente para coger los windows correspondientes.
 
-        if self.__is_lstm:
-            pass
+        for i, e in enumerate(index):
+            if e >= self.__jump_index:
+                index[i] = e + self.__jump_amount
 
         return self.__windows[index], self.__classes[index]
 
@@ -84,39 +94,7 @@ class SeizuresDataset(Dataset):
             Length of windows or recordings dependin on is_lstm.
 
         """
-        if self.__is_lstm:
-            if self.__patient_out is None:
-                return self.__len_rec
-            # Calculate the number of recordings of the patient of test and
-            # we substract it from the total number of recordings
-            idx1 = np.where(self.__recordings_start_idx ==
-                            self.__patient_start_idx[self.__patient_out])
-
-            if self.__patient_out == self.__len_pat - 1:
-                idx2 = self.__len_rec - 1
-
-            else:
-                idx2 = np.where(self.__recordings_start_idx ==
-                                self.__patient_start_idx[self.__patient_out+1])
-
-            if self.__patient_out is None:
-                return self.__len
-
-            patient_out_recordings = idx2 - idx1
-            return self.len__rec - patient_out_recordings
-
-        # Calculate the number of windows of the patient of test and
-        # we substract it from the total number of windows
-        idx1 = self.__patient_start_idx[self.__patient_out]
-
-        if self.__patient_out == self.__len_pat - 1:
-            idx2 = self.__len - 1
-
-        else:
-            idx2 = self.__patient_start_idx[self.__patient_out+1]
-
-        patient_out_wins = idx2 - idx1
-        return self.__len - patient_out_wins
+        return self.__len
 
 ###############################################################################
 
@@ -124,20 +102,85 @@ class SeizuresDataset(Dataset):
 ###############################################################################
 #                              Protected Methods                              #
 
-
     def __load_data(self):  # noqa
-        windows, classes, patient_start_idx, recordings_start_idx = load_seizures(
+        windows, classes, patient_start_idexes, recordings_start_idexes = load_seizures(
             self.__path_root_directory
         )
 
         self.__windows = from_numpy(windows)
         self.__classes = from_numpy(classes)
-        self.__patient_start_idx = patient_start_idx
-        self.__recordings_start_idx = recordings_start_idx
+        self.__patient_start_idexes = patient_start_idexes
+        self.__recordings_start_idexes = recordings_start_idexes
 
-        self.__len = len(self.__windows)
-        self.__len_pat = len(self.__patient_start_idx)
-        self.__len_rec = len(self.__recordings_start_idx)
+        self.__len_windows = len(self.__windows)
+        self.__len_patients = len(self.__patient_start_idexes)
+        self.__len_recordings = len(self.__recordings_start_idexes)
+
+    def __calculate_internal_indexes(self):
+        if self.__is_lstm:
+            if self.__patient is None:
+                self.__jump_index = self.__len_patients
+                end_index = self.__len_patients
+
+            else:
+                self.__jump_index = np.where(
+                    (
+                        self.__recordings_start_idexes
+                    ) == (
+                        self.__patient_start_idexes[self.__patient]
+                    )
+                )
+
+                if self.__patient == self.__len_patients - 1:
+                    end_index = self.__len_recordings - 1
+
+                else:
+                    end_index = np.where(
+                        (
+                            self.__recordings_start_idexes
+                        ) == (
+                            self.__patient_start_idexes[self.__patient + 1]
+                        )
+                    )
+
+            self.__jump_amount = end_index - self.__jump_index
+            if self.__is_personalized:
+                self.__len = self.__jump_amount
+                self.__jump_amount = self.__recordings_start_idexes[
+                    self.__jump_index
+                ]
+                self.__jump_index = 0
+
+            else:
+                self.__len = self.__len_recordings - self.__jump_amount
+                self.__jump_index = self.__recordings_start_idexes[
+                    self.__jump_index
+                ]
+                end_index = self.__recordings_start_idexes[end_index]
+                self.__jump_amount = end_index - self.__jump_index
+
+        else:
+            if self.__patient is None:
+                self.__jump_index = self.__len_windows
+                end_index = self.__len_windows
+
+            else:
+                self.__jump_index = self.__patient_start_idexes[self.__patient]
+
+                if self.__patient == self.__len_patients - 1:
+                    end_index = self.__len_windows - 1
+
+                else:
+                    end_index = self.__patient_start_idexes[self.__patient + 1]
+
+            self.__jump_amount = end_index - self.__jump_index
+            if self.__is_personalized:
+                self.__len = self.__jump_amount
+                self.__jump_amount = self.__jump_index
+                self.__jump_index = 0
+
+            else:
+                self.__len = self.__len_windows - self.__jump_amount
 
 ###############################################################################
 
@@ -146,7 +189,7 @@ class SeizuresDataset(Dataset):
 #                                  Properties                                 #
 
     @property  # noqa
-    def patient_out(self) -> int:
+    def patient(self) -> int:
         """
         Retrive Int with the patient being left out of train set.
 
@@ -156,17 +199,25 @@ class SeizuresDataset(Dataset):
             Int indicating which patient is being left out in the actual fold.
 
         """
-        return self.__patient_out
+        return self.__patient
 
-    @patient_out.setter
-    def patient_out(self, new_patient):
+    @patient.setter
+    def patient(self, new_patient: int):
         """
-        Set new patient to be left out of train set
+        Set new patient to select of train set.
 
-        Args:
-            new_patient (_type_): _description_
+        Parameters
+        ----------
+        new_patient : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
         """
-        self.__patient_out = new_patient
+        self.__patient = new_patient
+        self.__calculate_internal_indexes()
 
     @property  # noqa
     def is_lstm(self) -> bool:
@@ -182,73 +233,43 @@ class SeizuresDataset(Dataset):
         return self.__is_lstm
 
     @is_lstm.setter
-    def is_lstm(self, new_is_lstm):
+    def is_lstm(self, new_is_lstm: bool):
         """
-        Set new lstm training state
+        Set new lstm training state.
 
-        Args:
+        Parameters
+        ----------
+        new_is_lstm : TYPE
+            state of a lstm model being trained.
+
+        Returns
         -------
-        bool
-            new_is_lstm: state of a lstm model being trained
+        None.
+
         """
         self.__is_lstm = new_is_lstm
-
-    @property  # noqa
-    def classes(self) -> Tensor:
-        """
-        Retrive Torch Tensor with the classes of the windows.
-
-        Returns
-        -------
-        Torch Tensor
-            Classes of Windows. Is a mask 1 on 1 to the "windows" tensor.
-
-        """
-        return self.__classes
+        self.__calculate_internal_indexes()
 
     @property
-    def patients_ids(self) -> Tensor:
+    def is_personalized(self) -> bool:
         """
-        Retrive Torch Tensor with the Patient's IDs.
+        Return if the model is in personalized mode instead of generalized.
 
         Returns
         -------
-        Torch Tensor
-            Patient's IDs of Windows. Is a mask 1 on 1 to the "windows" tensor.
+        bool
+            DESCRIPTION.
 
         """
-        return self.__patients_ids
+        return self.__is_personalized
 
-    @property
-    def recordings(self) -> Tensor:
-        """
-        Retrive Torch Tensor with the Recordings of Patients of the Windows.
+    @is_personalized.setter
+    def is_personalized(self, new_is_personalized: int):
+        self.__is_personalized = new_is_personalized
+        self.__calculate_internal_indexes()
 
-        Returns
-        -------
-        Torch Tensor
-            Recordings of Patients of Windows. Is a mask 1 on 1 to the
-            "windows" tensor.
-
-        """
-        return self.__recordings
-
-    @property
-    def windows(self) -> Tensor:
-        """
-        Retrive Tensor with all the Windows with the data of seizures.
-
-        Returns
-        -------
-        Tensor
-            Windows of seizures.
-
-        """
-        return self.__windows
 
 ###############################################################################
-
-
 if __name__ == "__main__":
     dataset = SeizuresDataset(DATA_PATH)
     if DEBUG:
