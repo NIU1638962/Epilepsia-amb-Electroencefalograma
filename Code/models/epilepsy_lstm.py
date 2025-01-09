@@ -182,3 +182,51 @@ class EpilepsyLSTMBB(nn.Module):
         x = self.fc(out)
 
         return x, hn, cn
+
+
+def get_hyperparameters(config = 0):
+
+    # initialize dictionaries
+    inputmodule_params = {}
+    net_params = {}
+    outmodule_params = {}
+
+    # network input parameters
+    inputmodule_params['n_nodes'] = 21
+    outmodule_params['n_classes'] = 2
+
+
+    if config == 1:
+    
+        # LSTM unit  parameters
+        net_params['l_stacks'] = 1  # stacked layers (num_layers)
+        net_params['dropout'] = 0.0
+        net_params['hidden_size'] = 256  # h
+
+        # network output parameters
+        
+        outmodule_params['hd'] = 128
+
+    elif config == 1:
+    
+        # LSTM unit  parameters
+        net_params['l_stacks'] = 1  # stacked layers (num_layers)
+        net_params['dropout'] = 0.0
+        net_params['hidden_size'] = 256  # h
+
+        # network output parameters
+        outmodule_params['n_classes'] = 2
+        outmodule_params['hd'] = 128
+
+    elif config == 3:
+    
+        # LSTM unit  parameters
+        net_params['l_stacks'] = 1  # stacked layers (num_layers)
+        net_params['dropout'] = 0.0
+        net_params['hidden_size'] = 256  # h
+
+        # network output parameters
+        outmodule_params['n_classes'] = 2
+        outmodule_params['hd'] = 128
+
+    return (inputmodule_params, net_params, outmodule_params)

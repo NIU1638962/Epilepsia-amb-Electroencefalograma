@@ -15,7 +15,7 @@ from torch.nn import CrossEntropyLoss
 from dataloaders import create_dataloader
 from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG, RESULTS_PATH, TRAINED_MODELS_PATH, USER
-from models import EpilepsyLSTMBB, FeatureLevelFusion, InputLevelFusion
+from models import EpilepsyLSTMBB, FeatureLevelFusion, InputLevelFusion, get_hyperparameters
 from train import train_classifier, train_lstm
 from utils import echo, plot_multiple_losses
 from kfold import patient_kfold
@@ -57,7 +57,9 @@ def main():
 
     window_batch = 32
 
-    patient_kfold(data, models, loss_func, batch_size, window_batch, device)
+    model_params = get_hyperparameters(config=0)
+
+    patient_kfold(data, models, loss_func, batch_size, window_batch, device, model_params)
 
 if __name__ == '__main__':
     main()

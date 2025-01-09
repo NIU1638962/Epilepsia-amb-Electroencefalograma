@@ -19,7 +19,7 @@ import sys
 
 time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
 
-def patient_kfold(data, models, loss_func, batch_size, window_batch, device):
+def patient_kfold(data, models, loss_func, batch_size, window_batch, device, model_params):
     patients = np.array([i for i in range(24)])
     roc_curves = []
     metrics = []
@@ -32,7 +32,7 @@ def patient_kfold(data, models, loss_func, batch_size, window_batch, device):
         bb_model, loss_log = train_classifier(bb_model, loss_func, device, dataloader, optimizer, models['BB']['num_epochs'])
 
         bb_model.eval()
-        lstm_model = models['LSTM']['model']()
+        lstm_model = models['LSTM']['model'](*model_params)
         
         data.is_lstm = True
         dataloader = create_dataloader(data, 1)
