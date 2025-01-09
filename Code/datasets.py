@@ -77,11 +77,16 @@ class SeizuresDataset(Dataset):
         # por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
         # en la medida de recordings de este paciente para coger los windows correspondientes.
 
+        if index >= self.__jump_index:
+            index = self.__jump_amount + index
+
         if self.__is_lstm:
-            index = Tensor(self.__recordings_start_idexes[index])
-        for i, e in enumerate(index):
-            if e >= self.__jump_index:
-                index[i] = e + self.__jump_amount
+            index = Tensor(
+                range(
+                    self.__recordings_start_idexes[index],
+                    self.__recordings_start_idexes[index + 1],
+                ),
+            )
 
         return self.__windows[index], self.__classes[index]
 
@@ -147,18 +152,12 @@ class SeizuresDataset(Dataset):
             self.__jump_amount = end_index - self.__jump_index
             if self.__is_personalized:
                 self.__len = self.__jump_amount
-                self.__jump_amount = self.__recordings_start_idexes[
-                    self.__jump_index
-                ]
+                self.__jump_amount = self.__jump_index
                 self.__jump_index = 0
 
             else:
                 self.__len = self.__len_recordings - self.__jump_amount
-                self.__jump_index = self.__recordings_start_idexes[
-                    self.__jump_index
-                ]
-                end_index = self.__recordings_start_idexes[end_index]
-                self.__jump_amount = end_index - self.__jump_index
+                self.__jump_index = self.__jump_index
 
         else:
             if self.__patient is None:
