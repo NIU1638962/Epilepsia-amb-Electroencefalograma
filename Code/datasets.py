@@ -11,8 +11,7 @@ from torch.utils.data import Dataset
 
 from load_datasets import load_seizures
 
-from environ import DATA_PATH, DEBUG
-from utils import echo
+from environ import DATA_PATH
 
 
 class SeizuresDataset(Dataset):
@@ -42,8 +41,8 @@ class SeizuresDataset(Dataset):
         self.__path_root_directory = path_root_directory
 
         self.__classes = Tensor()
-        self.__patient_start_idexes = np.ndarray()
-        self.__recordings_start_idexes = np.ndarray()
+        self.__patient_start_idexes = np.ndarray([])
+        self.__recordings_start_idexes = np.ndarray([])
         self.__windows = Tensor()
 
         self.__len = 0
@@ -78,6 +77,8 @@ class SeizuresDataset(Dataset):
         # por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
         # en la medida de recordings de este paciente para coger los windows correspondientes.
 
+        if self.__is_lstm:
+            index = Tensor(self.__recordings_start_idexes[index])
         for i, e in enumerate(index):
             if e >= self.__jump_index:
                 index[i] = e + self.__jump_amount
@@ -272,8 +273,3 @@ class SeizuresDataset(Dataset):
 ###############################################################################
 if __name__ == "__main__":
     dataset = SeizuresDataset(DATA_PATH)
-    if DEBUG:
-        echo(dataset.windows.shape)
-        echo(dataset.classes.shape)
-        echo(dataset.patients_ids.shape)
-        echo(dataset.recordings.shape)
