@@ -22,11 +22,19 @@ def patient_kfold(data, models, loss_func, batch_size, window_batch, device):
     for patient in patients:
         data.patient = patient
         dataloader = create_dataloader(data, batch_size)
-        models['BB']['model'], log_loss = train_classifier(models['BB']['model'], loss_func, device, dataloader, models['BB']['optimizer'], models['BB']['num_epochs'])
+        bb_model = models['BB']['model']()
+        optimizer = models['BB']['optimizer'](bb_model.parameters(), lr = 0.001)
 
-        models['BB']['model'].eval()
+        bb_model, loss_log = train_classifier(bb_model, loss_func, device, dataloader, optimizer, models['BB']['num_epochs'])
+
+        bb_model.eval()
+        lstm_model = models['LSTM']['model']()
         
         data.is_lstm = True
         dataloader = create_dataloader(data, 1)
 
-        models['LTSM']['model'], loss_log = train_lstm(models['BB']['model'], models['LSTM']['model'], loss_func, device, dataloader, models['LSTM']['optimizer'], models['LSTM']['num_epochs'], window_batch)
+        optimizer = models['LSTM']['optimizer'](lstm_model.parameters(), lr = 0.001)
+
+        lstm_model, loss_log = train_lstm(bb_model, lstm_model, loss_func, device, dataloader, optimizer, models['LSTM']['num_epochs'], window_batch)
+
+        

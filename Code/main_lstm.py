@@ -18,6 +18,7 @@ from environ import DATA_PATH, DEBUG, RESULTS_PATH, TRAINED_MODELS_PATH, USER
 from models import EpilepsyLSTMBB, FeatureLevelFusion, InputLevelFusion
 from train import train_classifier, train_lstm
 from utils import echo, plot_multiple_losses
+from kfold import patient_kfold
 
 
 def main():
@@ -37,8 +38,8 @@ def main():
         echo(f'Device: "{device}"')
 
     models = {
-        'BB': {'model': FeatureLevelFusion(), 'num_epochs': 50},
-        'LSTM': {'model' :EpilepsyLSTMBB(), 'num_epochs': 10}
+        'BB': {'model': FeatureLevelFusion, 'optimizer': torch.optim.Adam, 'num_epochs': 50},
+        'LSTM': {'model' :EpilepsyLSTMBB, 'optimizer': torch.optim.Adam, 'num_epochs': 10}
     }
 
     echo('\n')
@@ -46,65 +47,17 @@ def main():
     echo('READING DATASET')
 
     data = SeizuresDataset(DATA_PATH)
-    
-    
+
+    echo('DATASET READ')
+    echo('')
+
+    loss_func = CrossEntropyLoss()
 
     batch_size = 1024
 
-    echo('DATASET READ')
+    window_batch = 32
 
-    echo('')
-
-    losses = []
-
-    for model_type, model in models.items():
-        echo('')
-        echo(f'Training {model_type} Model:')
-
-        model = model()
-
-        loss_func = CrossEntropyLoss()
-
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        num_epochs = 50
-
-        model.to(device)
-
-        model, log_loss = train_classifier(
-            model,
-            loss_func,
-            device,
-            loader,
-            optimizer,
-            num_epochs,
-        )
-
-        log_loss['name'] = model_type
-
-        torch.save(
-            model.state_dict(),
-            os.path.join(
-                TRAINED_MODELS_PATH,
-                f'{USER} {time} {model_type} Model.pth',
-            ),
-        )
-
-        losses.append(log_loss)
-
-        del model
-
-        gc.collect()
-        torch.cuda.empty_cache()
-
-    plot_multiple_losses(
-        losses,
-        os.path.join(
-            RESULTS_PATH,
-            f'{USER} {time} Losses.png'
-        ),
-        f'Backbone Classifier ({batch_size})',
-    )
-
+    patient_kfold(data, models, loss_func, batch_size, window_batch, device)
 
 if __name__ == '__main__':
     main()
