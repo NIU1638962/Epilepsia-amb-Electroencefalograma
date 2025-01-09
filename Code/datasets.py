@@ -77,19 +77,16 @@ class SeizuresDataset(Dataset):
         # por lo tanto tener en cuenta el paciente left out y los indices mayor a este extenderlos
         # en la medida de recordings de este paciente para coger los windows correspondientes.
 
+        if index >= self.__jump_index:
+            index = self.__jump_amount + index
+
         if self.__is_lstm:
-            if index >= self.__jump_index:
-                index = self.__jump_amount + index
             index = Tensor(
                 range(
                     self.__recordings_start_idexes[index],
                     self.__recordings_start_idexes[index + 1],
                 ),
             )
-
-        else:
-            if index >= self.__jump_index:
-                index = index + self.__jump_amount
 
         return self.__windows[index], self.__classes[index]
 
@@ -110,7 +107,6 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                              Protected Methods                              #
-
 
     def __load_data(self):  # noqa
         windows, classes, patient_start_idexes, recordings_start_idexes = load_seizures(
@@ -191,7 +187,6 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                                  Properties                                 #
-
 
     @property  # noqa
     def patient(self) -> int:
