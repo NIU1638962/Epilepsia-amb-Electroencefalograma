@@ -53,7 +53,8 @@ class SeizuresDataset(Dataset):
         self.__len_windows = 0
 
         self.__patient = None
-        self.__percentage_test = 0
+        self.__test_recording = None
+        
 
         self.__is_lstm = False
         self.__is_personalized = False
@@ -126,6 +127,7 @@ class SeizuresDataset(Dataset):
         self.__len_windows = len(self.__windows)
         self.__len_patients = len(self.__patient_start_idexes)
         self.__len_recordings = len(self.__recordings_start_idexes)
+        self.__len_patient_recordings = None
 
     def __calculate_internal_indexes(self):
         if self.__is_lstm:
@@ -178,13 +180,24 @@ class SeizuresDataset(Dataset):
                 end_index = self.__len_windows
 
             else:
-                self.__jump_index = self.__patient_start_idexes[self.__patient]
+                if self.__record is None:
+                    self.__jump_index = self.__patient_start_idexes[self.__patient]
 
-                if self.__patient == self.__len_patients - 1:
-                    end_index = self.__len_windows - 1
+                    if self.__patient == self.__len_patients - 1:
+                        end_index = self.__len_windows - 1
 
+                    else:
+                        end_index = self.__patient_start_idexes[self.__patient + 1]
+                        
                 else:
-                    end_index = self.__patient_start_idexes[self.__patient + 1]
+                    self.__jump_index = self.__patient_start_idexes[self.__patient]
+                    self.__jump_test_index = self.__recordings_start_idexes[self.__test_recording]
+
+                    if self.__patient == self.__len_patients - 1:
+                        end_index = self.__len_windows - 1
+
+                    else:
+                        end_index = self.__patient_start_idexes[self.__patient + 1]
 
             self.__jump_amount = end_index - self.__jump_index
             if (
@@ -306,6 +319,19 @@ class SeizuresDataset(Dataset):
     def is_test(self, new_is_test: bool):
         self.__is_test = new_is_test
         self.__calculate_internal_indexes()
+        
+    @property  # noqa
+    def len_patient_recordings(self) -> int:
+        """
+        Retrive Int number of recordings for actual patient.
+
+        Returns
+        -------
+        Int
+            Int indicating number of recordings of the actual patient.
+
+        """
+        return self.__len_patient_recordings
 
 
 ###############################################################################
