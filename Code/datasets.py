@@ -87,9 +87,9 @@ class SeizuresDataset(Dataset):
                 ),
             )
 
-        for i, e in enumerate(index):
-            if e >= self.__jump_index:
-                index[i] = e + self.__jump_amount
+        else:
+            if index >= self.__jump_index:
+                index = index + self.__jump_amount
 
         return self.__windows[index], self.__classes[index]
 
