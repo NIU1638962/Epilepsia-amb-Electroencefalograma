@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*- noqa
 """
-Created on Sat Dec 28 15:27:34 2024
+Created on Thu Jan  9 21:37:15 2025
 
 @author: Joel Tapia Salvador
 """
-
 import numpy as np
 from torch import from_numpy, Tensor, int32, tensor
 from torch.utils.data import Dataset
 
-from load_datasets import load_seizures
-
-from environ import DATA_PATH
+from dataloaders import create_dataloader
 
 
-class SeizuresDataset(Dataset):
+class TestDataset(Dataset):
     """Torch Dataset with the seizures information loaded."""
 
     __slots__ = (
@@ -119,8 +116,64 @@ class SeizuresDataset(Dataset):
 #                              Protected Methods                              #
 
     def __load_data(self):  # noqa
-        windows, classes, patient_start_idexes, recordings_start_idexes = load_seizures(
-            self.__path_root_directory
+        windows = np.array(
+            [
+                [0, 0, 0],
+                [0, 0, 1],
+                [0, 0, 2],
+                [0, 1, 3],
+                [0, 1, 4],
+                [0, 1, 5],
+                [0, 1, 6],
+                [0, 2, 7],
+                [0, 2, 8],
+                [0, 2, 9],
+                [0, 3, 10],
+                [0, 3, 11],
+                [0, 3, 12],
+                [1, 4, 13],
+                [1, 4, 14],
+                [1, 4, 15],
+                [1, 4, 16],
+                [1, 5, 17],
+                [1, 5, 18],
+                [1, 5, 19],
+                [1, 6, 20],
+                [1, 6, 21],
+                [1, 6, 22],
+                [2, 7, 23],
+                [2, 7, 24],
+                [2, 7, 25],
+                [2, 8, 26],
+                [2, 8, 27],
+                [2, 8, 28],
+                [2, 9, 29],
+            ],
+        )
+
+        classes = np.array([int(bool(i % 10))for i in range(30)])
+
+        patient_start_idexes = np.array(
+            [
+                0,
+                13,
+                23,
+            ],
+        )
+
+        recordings_start_idexes = np.array(
+            [
+                0,
+                3,
+                7,
+                10,
+                13,
+                17,
+                20,
+                23,
+                26,
+                29,
+            ],
         )
 
         self.__windows = from_numpy(windows)
@@ -132,6 +185,24 @@ class SeizuresDataset(Dataset):
         self.__len_patients = len(self.__patient_start_idexes)
         self.__len_recordings = len(self.__recordings_start_idexes)
         self.__len_patient_recordings = None
+
+        assert (
+            self.__len_windows == 30
+        ), (
+            f'Length windows: {self.__len_windows} != 30'
+        )
+
+        assert (
+            self.__len_patients == 3
+        ), (
+            f'Length patients: {self.__len_patients} != 3'
+        )
+
+        assert (
+            self.__len_recordings == 10
+        ), (
+            f'Length recordings: {self.__len_recordings} != 10'
+        )
 
     def __calculate_internal_indexes(self):
         if self.__patient is None:
@@ -217,6 +288,11 @@ class SeizuresDataset(Dataset):
 
         len_index = end_index - start_index
 
+        if self.__is_lstm:
+            pass
+        else:
+            pass
+
         if self.__is_personalized:
             self.__len = len_index
             self.__jump_amount = start_index
@@ -237,6 +313,82 @@ class SeizuresDataset(Dataset):
 
                 self.__jump_amount_test = 0
                 self.__jump_index_test = 0
+
+        # #######################################################################
+
+        # if self.__is_lstm:
+        #     if self.__patient is None:
+        #         pass
+
+        #     else:
+
+        #         if self.__patient == self.__len_patients - 1:
+        #             end_index = self.__len_recordings - 1
+
+        #         else:
+        #             end_index = np.where(
+        #                 (
+        #                     self.__recordings_start_idexes
+        #                 ) == (
+        #                     self.__patient_start_idexes[self.__patient + 1]
+        #                 )
+        #             )
+
+        #     self.__jump_amount = end_index - self.__jump_index
+        #     if (
+        #             self.__is_personalized
+        #     ) or (
+        #             (
+        #                 not self.__is_personalized
+        #             ) and (
+        #                 self.__is_test
+        #             )
+        #     ):
+        #         self.__len = self.__jump_amount
+        #         self.__jump_amount = self.__jump_index
+        #         self.__jump_index = 0
+
+        #     else:
+        #         self.__len = self.__len_recordings - self.__jump_amount
+        #         self.__jump_index = self.__jump_index
+
+        # else:
+        #     if self.__patient is None:
+        #         self.__jump_index = self.__len_windows
+        #         end_index = self.__len_windows
+        #         self.__len_patient_recordings = None
+
+        #     else:
+        #         self.__jump_index = self.__patient_start_idexes[self.__patient]
+
+        #         if self.__patient == self.__len_patients - 1:
+        #             end_index = self.__len_windows - 1
+
+        #         else:
+        #             end_index = self.__patient_start_idexes[self.__patient + 1]
+
+        #     self.__jump_amount = end_index - self.__jump_index
+
+        #     if self.__test_recording is None:
+        #         self.__jump_index_test = self.__len_windows
+        #         self.__jump_amount_test = 0
+        #     # else:
+
+        #     if (
+        #             self.__is_personalized
+        #     ) or (
+        #             (
+        #                 not self.__is_personalized
+        #             ) and (
+        #                 self.__is_test
+        #             )
+        #     ):
+        #         self.__len = self.__jump_amount
+        #         self.__jump_amount = self.__jump_index
+        #         self.__jump_index = 0
+
+        #     else:
+        #         self.__len = self.__len_windows - self.__jump_amount
 
 ###############################################################################
 
@@ -358,4 +510,63 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 if __name__ == "__main__":
-    dataset = SeizuresDataset(DATA_PATH)
+    dataset = TestDataset('')
+
+    loader = create_dataloader(dataset, 2, False)
+
+    for data in loader:
+        print(data)
+
+    print('-'*10)
+
+    dataset.is_lstm = True
+
+    loader = create_dataloader(dataset, 1, False)
+
+    for data in loader:
+        print(data)
+
+    for i in range(3):
+        print('-' * 10)
+        print(i)
+        dataset.patient = i
+
+        dataset.is_test = False
+
+        dataset.is_lstm = False
+
+        print('='*10)
+
+        loader = create_dataloader(dataset, 2, False)
+
+        for data in loader:
+            print(data)
+
+        print('='*10)
+
+        dataset.is_test = True
+
+        loader = create_dataloader(dataset, 2, False)
+
+        for data in loader:
+            print(data)
+
+        print('='*10)
+
+        dataset.is_test = False
+
+        dataset.is_lstm = True
+
+        loader = create_dataloader(dataset, 1, False)
+
+        for data in loader:
+            print(data)
+
+        print('='*10)
+
+        dataset.is_test = True
+
+        loader = create_dataloader(dataset, 1, False)
+
+        for data in loader:
+            print(data)
