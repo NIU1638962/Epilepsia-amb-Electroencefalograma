@@ -21,6 +21,7 @@ class SeizuresDataset(Dataset):
         "__classes",
         "__is_lstm",
         "__is_personalized",
+        "__is_test",
         "__jump_amount",
         "__jump_index",
         "__len",
@@ -30,6 +31,7 @@ class SeizuresDataset(Dataset):
         "__path_root_directory",
         "__patient",
         "__patient_start_idexes",
+        "__percentage_test",
         "__recordings_start_idexes",
         "__windows",
     )
@@ -51,8 +53,11 @@ class SeizuresDataset(Dataset):
         self.__len_windows = 0
 
         self.__patient = None
+        self.__percentage_test = 0
+
         self.__is_lstm = False
         self.__is_personalized = False
+        self.__is_test = False
 
         self.__load_data()
         self.__calculate_internal_indexes()
@@ -150,7 +155,15 @@ class SeizuresDataset(Dataset):
                     )
 
             self.__jump_amount = end_index - self.__jump_index
-            if self.__is_personalized:
+            if (
+                    self.__is_personalized
+            ) or (
+                    (
+                        not self.__is_personalized
+                    ) and (
+                        self.__is_test
+                    )
+            ):
                 self.__len = self.__jump_amount
                 self.__jump_amount = self.__jump_index
                 self.__jump_index = 0
@@ -174,7 +187,15 @@ class SeizuresDataset(Dataset):
                     end_index = self.__patient_start_idexes[self.__patient + 1]
 
             self.__jump_amount = end_index - self.__jump_index
-            if self.__is_personalized:
+            if (
+                    self.__is_personalized
+            ) or (
+                    (
+                        not self.__is_personalized
+                    ) and (
+                        self.__is_test
+                    )
+            ):
                 self.__len = self.__jump_amount
                 self.__jump_amount = self.__jump_index
                 self.__jump_index = 0
@@ -266,6 +287,24 @@ class SeizuresDataset(Dataset):
     @is_personalized.setter
     def is_personalized(self, new_is_personalized: int):
         self.__is_personalized = new_is_personalized
+        self.__calculate_internal_indexes()
+
+    @property
+    def is_test(self) -> bool:
+        """
+        Return if the model is in test mode or not (if not is train mode).
+
+        Returns
+        -------
+        bool
+            DESCRIPTION.
+
+        """
+        return self.__is_test
+
+    @is_test.setter
+    def is_test(self, new_is_test: bool):
+        self.__is_test = new_is_test
         self.__calculate_internal_indexes()
 
 
