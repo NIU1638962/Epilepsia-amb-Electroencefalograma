@@ -27,14 +27,17 @@ USER.lower()
 
 if USER == 'maed02':
     DATA_PATH = '../../../maed/EpilepsyDataSet/'
+    PICKLE_PATH = '../Pickle'
     RESULTS_PATH = '../Results/'
     TRAINED_MODELS_PATH = '../Trained Models/'
 elif USER == 'Usuario':
     DATA_PATH = "../EpilepsyDataSet"
+    PICKLE_PATH = '../Pickle'
     RESULTS_PATH = '../Results/'
     TRAINED_MODELS_PATH = '../Trained Models/'
 else:
     DATA_PATH = '../Data/'
+    PICKLE_PATH = '../Pickle'
     RESULTS_PATH = '../Results/'
     TRAINED_MODELS_PATH = '../Trained Models/'
 
@@ -42,5 +45,6 @@ if DEBUG:
     echo(f'Platform: "{PLATFORM}"')
     echo(f'User: "{USER}"')
     echo(f'Path to data: "{DATA_PATH}"')
+    echo(f'Path to pickle: "{PICKLE_PATH}"')
     echo(f'Path to results: "{RESULTS_PATH}"')
     echo(f'Path to trained models: "{TRAINED_MODELS_PATH}"')

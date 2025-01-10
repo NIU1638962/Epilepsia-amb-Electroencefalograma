@@ -13,7 +13,7 @@ from typing import List, Tuple
 import torch
 
 from dataloaders import create_dataloader
-from environ import RESULTS_PATH, TRAINED_MODELS_PATH, USER
+from environ import RESULTS_PATH, TRAINED_MODELS_PATH, USER, PICKLE_PATH
 from train import train_classifier, train_lstm
 from utils import echo, plot_multiple_losses
 import numpy as np
@@ -21,6 +21,7 @@ from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 import sys
 import torch.nn.functional as F
+import pickle
 
 time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
 
@@ -169,11 +170,10 @@ def generalized_model_patient_kfold(
         torch.cuda.empty_cache()
 
     plot_roc_curves(roc_curves)
-    kfold_boxplot(
-        metrics,
-        'Generalized Model (Patient KFold) Boxplots',
-        '{USER} {time} Generalized Model (Patient KFold) Boxplots',
-    )
+    
+    
+    with open(os.path.join(PICKLE_PATH, 'Generalized Model (Patient KFold)', f'{USER} {time} dictionary metrics'), "wb") as archivo:
+        pickle.dump(metrics, archivo)
 
 
 def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
