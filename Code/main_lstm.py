@@ -39,7 +39,7 @@ def main():
 
     models = {
         'BB': {'model': FeatureLevelFusion, 'optimizer': torch.optim.Adam, 'num_epochs': 50},
-        'LSTM': {'model' :EpilepsyLSTMBB, 'optimizer': torch.optim.Adam, 'num_epochs': 10}
+        'LSTM': {'model' :EpilepsyLSTMBB, 'optimizer': torch.optim.Adam, 'num_epochs': 15}
     }
 
     echo('\n')
@@ -57,7 +57,7 @@ def main():
 
     window_batch = 32
 
-    model_params = get_hyperparameters(config=0)
+    model_params = get_hyperparameters(config=1)
 
     patient_kfold(data, models, loss_func, batch_size, window_batch, device, model_params)
 

@@ -171,16 +171,12 @@ class EpilepsyLSTMBB(nn.Module):
         else:
             out, (hn, cn) = self.lstm(x, (hn, cn))
 
-        # LSTM Processing
-
         # out is [batch = 1, timesteps(windows) = 1, hidden_size] for last stack output
-        out = self.flatten(out)
-
         # out = [batch = 1, hidden_size]
+        out = out.squeeze(0)
 
         # Output Classification (Class Probabilities)
         x = self.fc(out)
-
         return x, hn, cn
 
 
@@ -192,7 +188,7 @@ def get_hyperparameters(config = 0):
     outmodule_params = {}
 
     # network input parameters
-    inputmodule_params['n_nodes'] = 21
+    inputmodule_params['n_nodes'] = 128
     outmodule_params['n_classes'] = 2
 
 
@@ -207,7 +203,7 @@ def get_hyperparameters(config = 0):
         
         outmodule_params['hd'] = 128
 
-    elif config == 1:
+    elif config == 2:
     
         # LSTM unit  parameters
         net_params['l_stacks'] = 1  # stacked layers (num_layers)
