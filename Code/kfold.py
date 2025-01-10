@@ -125,7 +125,7 @@ def generalized_model_patient_kfold(
                 + ' Loss LSTM with Feature Level Fusion Backbone'
                 + f' Patient Out {patient + 1}.png',
             ),
-            f'LSTM Classifier Patient Out {patient}', ############################## ESta mal
+            f'LSTM Classifier Patient Out {patient + 1}',
         )
 
         torch.save(
@@ -144,18 +144,23 @@ def generalized_model_patient_kfold(
         data.is_test = True
         dataloader = create_dataloader(data, 1)
 
-        preds, target_labels = test_patient_kfold(
-            data, dataloader, bb_model, lstm_model, device)
+        predictions, target_labels = test_generalized_model_patient_kfold(
+            data,
+            dataloader,
+            bb_model,
+            lstm_model,
+            device,
+        )
 
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
-            preds,
+            predictions,
             target_labels,
             f'Patient Out {patient + 1}',
             show=True,
         )
 
-        acc = calculate_accuracy(preds, target_labels, best_thr)
-        metrics.append((best_thr, best_fpr, best_tpr, acc))
+        accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+        metrics.append((best_thr, best_fpr, best_tpr, accuracy))
         echo(
             f'Best Threshold: {metrics[-1][0]:.10f}'
             + f', False Positive Rate: {metrics[-1][1]:.10f}'
@@ -170,13 +175,25 @@ def generalized_model_patient_kfold(
         torch.cuda.empty_cache()
 
     plot_roc_curves(roc_curves)
-    
-    
-    with open(os.path.join(PICKLE_PATH, 'Generalized Model (Patient KFold)', f'{USER} {time} dictionary metrics'), "wb") as archivo:
-        pickle.dump(metrics, archivo)
+
+    with open(
+        os.path.join(
+            PICKLE_PATH,
+            'Generalized Model (Patient KFold)',
+            f'{USER} {time} dictionary metrics'
+        ),
+        'wb',
+    ) as file:
+        pickle.dump(metrics, file)
 
 
-def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
+def test_generalized_model_patient_kfold(
+        data,
+        dataloader,
+        bb_model,
+        lstm_model,
+        device,
+):
     bb_model.eval()
     lstm_model.eval()
     preds = []
@@ -202,7 +219,7 @@ def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
     return preds, target_labels
 
 
-def personalized_model_patient_kfold(
+def personalized_model_record_kfold(
         data,
         models,
         loss_func,
@@ -226,12 +243,13 @@ def personalized_model_patient_kfold(
         data.patient = patient
         num_recordings = data.len_patient_recordings
         recordings = np.array([i for i in range(num_recordings)])
-        
+
         for recording in recordings:
             data.test_recording = recording
             dataloader = create_dataloader(data, batch_size)
             bb_model = models['BB']['model']()
-            optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
+            optimizer = models['BB']['optimizer'](
+                bb_model.parameters(), lr=0.001)
 
             bb_model.to(device)
 
@@ -324,18 +342,23 @@ def personalized_model_patient_kfold(
         data.is_test = True
         dataloader = create_dataloader(data, 1)
 
-        preds, target_labels = test_patient_kfold(
-            data, dataloader, bb_model, lstm_model, device)
+        predictions, target_labels = test_personalized_model_record_kfold(
+            data,
+            dataloader,
+            bb_model,
+            lstm_model,
+            device,
+        )
 
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
-            preds,
+            predictions,
             target_labels,
             f'for Patient {patient + 1}',
             show=True,
         )
 
-        acc = calculate_accuracy(preds, target_labels, best_thr)
-        metrics.append((best_thr, best_fpr, best_tpr, acc))
+        accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+        metrics.append((best_thr, best_fpr, best_tpr, accuracy))
         echo(
             f'Best Threshold: {metrics[-1][0]:.10f}'
             + f', False Positive Rate: {metrics[-1][1]:.10f}'
@@ -357,8 +380,14 @@ def personalized_model_patient_kfold(
     )
 
 
-
-
+def test_personalized_model_record_kfold(
+        data,
+        dataloader,
+        bb_model,
+        lstm_model,
+        device,
+):
+    pass
 
 
 def compute_train_roc(

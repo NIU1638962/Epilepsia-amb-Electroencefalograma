@@ -57,7 +57,7 @@ def main():
 
     batch_size = 1024
 
-    window_batch = 32
+    window_batch = 1024
 
     model_params = get_hyperparameters(config=1)
 
