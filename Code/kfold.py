@@ -8,9 +8,9 @@ import os
 import gc
 
 from datetime import datetime, timezone
+from typing import List, Tuple
 
 import torch
-
 
 from dataloaders import create_dataloader
 from environ import RESULTS_PATH, TRAINED_MODELS_PATH, USER
@@ -172,8 +172,8 @@ def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
 
 
 def compute_train_roc(
-        probs: list[float],
-        target_labels: list[int],
+        probs: List[float],
+        target_labels: List[int],
         name,
         show=False,
 ):
@@ -189,7 +189,7 @@ def get_best_thr(
         false_positive_rates: np.ndarray,
         true_positive_rates: np.ndarray,
         thresholds: np.ndarray,
-) -> tuple[float, float, float]:
+) -> Tuple[float, float, float]:
     best_thr = None
     min_distance = sys.maxsize
     for fpr, tpr, thr in zip(false_positive_rates, true_positive_rates, thresholds):
@@ -250,7 +250,7 @@ def plot_roc_curves(roc_curves):
     plt.show()
 
 
-def kfold_boxplot(metrics: list[tuple[float]], title_1: str, file_name: str):
+def kfold_boxplot(metrics: List[Tuple[float]], title_1: str, file_name: str):
     metric_1, metric_2, metric_3, metric_4 = zip(*metrics)
     fig, axes = plt.subplots(2, 2, figsize=(15, 5))  # 1 fila, 3 columnas
 
