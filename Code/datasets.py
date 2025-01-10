@@ -216,11 +216,25 @@ class SeizuresDataset(Dataset):
                     ]
 
         len_index = end_index - start_index
+        len_test_index = end_test_index - start_test_index
 
         if self.__is_personalized:
-            self.__len = len_index
-            self.__jump_amount = start_index
-            self.__jump_index = 0
+            if self.__is_test:
+                self.__len = len_test_index
+                self.__jump_amount = start_index
+                self.__jump_index = 0
+
+                self.__jump_amount_test = start_test_index - start_index
+                self.__jump_index_test = 0
+
+            else:
+                self.__len = len_index - len_test_index
+                self.__jump_amount = start_index
+                self.__jump_index = 0
+
+                self.__jump_amount_test = len_test_index
+                self.__jump_index_test = start_test_index
+
         else:
             if self.__is_test:
                 self.__len = len_index
@@ -243,37 +257,6 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                                  Properties                                 #
-
-    @property  # noqa
-    def patient(self) -> int:
-        """
-        Retrive Int with the patient being left out of train set.
-
-        Returns
-        -------
-        Int
-            Int indicating which patient is being left out in the actual fold.
-
-        """
-        return self.__patient
-
-    @patient.setter
-    def patient(self, new_patient: int):
-        """
-        Set new patient to select of train set.
-
-        Parameters
-        ----------
-        new_patient : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
-        self.__patient = new_patient
-        self.__calculate_internal_indexes()
 
     @property  # noqa
     def is_lstm(self) -> bool:
@@ -342,7 +325,7 @@ class SeizuresDataset(Dataset):
         self.__is_test = new_is_test
         self.__calculate_internal_indexes()
 
-    @property  # noqa
+    @property
     def len_patient_recordings(self) -> int:
         """
         Retrive Int number of recordings for actual patient.
@@ -354,6 +337,68 @@ class SeizuresDataset(Dataset):
 
         """
         return self.__len_patient_recordings
+
+    @property
+    def num_patients(self) -> int:
+        """
+        Return number of patients in the dataset.
+
+        Returns
+        -------
+        int
+            DESCRIPTION.
+
+        """
+        return self.__len_patients
+
+    @property
+    def patient(self) -> int:
+        """
+        Retrive Int with the patient being left out of train set.
+
+        Returns
+        -------
+        Int
+            Int indicating which patient is being left out in the actual fold.
+
+        """
+        return self.__patient
+
+    @patient.setter
+    def patient(self, new_patient: int):
+        """
+        Set new patient to select of train set.
+
+        Parameters
+        ----------
+        new_patient : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        self.__patient = new_patient
+        self.__calculate_internal_indexes()
+
+    @property
+    def test_recording(self) -> int:
+        """
+        Return recoding used in test.
+
+        Returns
+        -------
+        int
+            DESCRIPTION.
+
+        """
+        return self.__test_recording
+
+    @test_recording.setter
+    def test_recording(self, new_test_recording: int):
+        self.__test_recording = new_test_recording
+        self.__calculate_internal_indexes()
 
 
 ###############################################################################

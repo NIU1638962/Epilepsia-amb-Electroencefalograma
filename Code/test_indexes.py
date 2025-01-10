@@ -287,16 +287,25 @@ class TestDataset(Dataset):
                     ]
 
         len_index = end_index - start_index
-
-        if self.__is_lstm:
-            pass
-        else:
-            pass
+        len_test_index = end_test_index - start_test_index
 
         if self.__is_personalized:
-            self.__len = len_index
-            self.__jump_amount = start_index
-            self.__jump_index = 0
+            if self.__is_test:
+                self.__len = len_test_index
+                self.__jump_amount = start_index
+                self.__jump_index = 0
+
+                self.__jump_amount_test = start_test_index - start_index
+                self.__jump_index_test = 0
+
+            else:
+                self.__len = len_index - len_test_index
+                self.__jump_amount = start_index
+                self.__jump_index = 0
+
+                self.__jump_amount_test = len_test_index
+                self.__jump_index_test = start_test_index
+
         else:
             if self.__is_test:
                 self.__len = len_index
@@ -494,6 +503,24 @@ class TestDataset(Dataset):
         self.__is_test = new_is_test
         self.__calculate_internal_indexes()
 
+    @property
+    def test_recording(self) -> int:
+        """
+        Return recoding used in test.
+
+        Returns
+        -------
+        int
+            DESCRIPTION.
+
+        """
+        return self.__test_recording
+
+    @test_recording.setter
+    def test_recording(self, new_test_recording: int):
+        self.__test_recording = new_test_recording
+        self.__calculate_internal_indexes()
+
     @property  # noqa
     def len_patient_recordings(self) -> int:
         """
@@ -528,7 +555,7 @@ if __name__ == "__main__":
 
     for i in range(3):
         print('-' * 10)
-        print(i)
+        print(f'Excluding patient: {i}')
         dataset.patient = i
 
         dataset.is_test = False
@@ -570,3 +597,56 @@ if __name__ == "__main__":
 
         for data in loader:
             print(data)
+
+    dataset.is_personalized = True
+
+    for i in range(3):
+        print('-' * 10)
+        print(f'Personalized for patient: {i}')
+        dataset.patient = i
+
+        for j in range(dataset.len_patient_recordings):
+            print('=' * 10)
+            print(f'Test recording: {j}')
+
+            dataset.test_recording = j
+
+            print('+' * 10)
+
+            dataset.is_test = False
+
+            dataset.is_lstm = False
+
+            loader = create_dataloader(dataset, 2, False)
+
+            for data in loader:
+                print(data)
+
+            print('+' * 10)
+
+            dataset.is_test = True
+
+            loader = create_dataloader(dataset, 2, False)
+
+            for data in loader:
+                print(data)
+
+            print('+' * 10)
+
+            dataset.is_test = False
+
+            dataset.is_lstm = True
+
+            loader = create_dataloader(dataset, 1, False)
+
+            for data in loader:
+                print(data)
+
+            print('+' * 10)
+
+            dataset.is_test = True
+
+            loader = create_dataloader(dataset, 1, False)
+
+            for data in loader:
+                print(data)

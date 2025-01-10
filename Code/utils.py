@@ -71,12 +71,12 @@ def plot_multiple_losses(loss_logs: list, path: str, title: str = ''):
             range(1, len(losses) + 1),
             losses,
             marker='o',
-            label=f'{name} ({total_time})',
+            label=f'{name} ({total_time}s)',
         )
 
     # Information
     plt.title(f'Training Loss {title}', fontsize=16)
-    plt.xlabel('Epoch (s)', fontsize=14)
+    plt.xlabel('Epoch', fontsize=14)
     plt.ylabel('Loss', fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
