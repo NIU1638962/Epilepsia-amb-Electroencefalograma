@@ -15,8 +15,8 @@ from torch.nn import CrossEntropyLoss
 from dataloaders import create_dataloader
 from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG, RESULTS_PATH, TRAINED_MODELS_PATH, USER
-from models import EpilepsyLSTMBB, FeatureLevelFusion, InputLevelFusion
-from train import train_classifier, train_lstm
+from models import FeatureLevelFusion, InputLevelFusion
+from train import train_classifier
 from utils import echo, plot_multiple_losses
 
 
