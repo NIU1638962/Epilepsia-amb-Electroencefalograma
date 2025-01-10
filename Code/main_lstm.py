@@ -34,12 +34,12 @@ def main():
         'BB': {
             'model': FeatureLevelFusion,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 5,
+            'num_epochs': 50,
         },
         'LSTM': {
             'model': EpilepsyLSTMBB,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 2,
+            'num_epochs': 15,
         }
     }
 
