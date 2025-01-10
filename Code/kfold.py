@@ -573,7 +573,7 @@ def plot_roc_curves(roc_curves):
         'Generalized Model (Patient KFold)',
         '{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
     ))
-    plt.show()
+    # plt.show()
 
 
 def kfold_boxplot(metrics: List[Tuple[float]], title_1: str, file_name: str):
@@ -639,7 +639,6 @@ def mean_kfold(metrics: List[Tuple[float]]) -> List[Tuple[float, float]]:
     metrics = [metric_1, metric_2, metric_3, metric_4]
     metrics_stats = []
     for metric in metrics:
-        print(metric)
         media = sum(metric) / len(metric)
 
         # Varianza

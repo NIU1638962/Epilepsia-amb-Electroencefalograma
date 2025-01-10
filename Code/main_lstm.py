@@ -50,8 +50,6 @@ def main():
     data = SeizuresDataset(DATA_PATH)
 
     echo('DATASET READ')
-    echo('')
-    echo('--Generalized Model--')
 
     loss_func = CrossEntropyLoss()
 
@@ -60,6 +58,9 @@ def main():
     window_batch = 1024
 
     model_params = get_hyperparameters(config=1)
+
+    echo('')
+    echo('--Generalized Model--')
 
     generalized_model_patient_kfold(
         data,
@@ -70,6 +71,9 @@ def main():
         device,
         model_params,
     )
+
+    echo('')
+    echo('--Personalized Model--')
 
     personalized_model_record_kfold(
         data,
