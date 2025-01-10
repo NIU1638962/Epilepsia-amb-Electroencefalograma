@@ -285,13 +285,13 @@ def personalized_model_record_kfold(
         echo('')
         echo(f'Model for Patient: {patient + 1}')
         echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
-        data.is_test = False
-        data.is_lstm = False
         data.patient = patient
         num_recordings = data.len_patient_recordings
         recordings = np.array([i for i in range(num_recordings)])
 
         for recording in recordings:
+            data.is_test = False
+            data.is_lstm = False
             data.test_recording = recording
             dataloader = create_dataloader(data, batch_size)
             bb_model = models['BB']['model']()
