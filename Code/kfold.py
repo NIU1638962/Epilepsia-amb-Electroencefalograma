@@ -634,7 +634,7 @@ def calculate_accuracy(probabilities, target_labels, threshold=0.5):
     return accuracy
 
 
-def mean_kfold(metrics: list[tuple[float]]) -> list[tuple[float, float]]:
+def mean_kfold(metrics: List[Tuple[float]]) -> List[Tuple[float, float]]:
     metric_1, metric_2, metric_3, metric_4 = zip(*metrics)
     metrics = [metric_1, metric_2, metric_3, metric_4]
     metrics_stats = []
