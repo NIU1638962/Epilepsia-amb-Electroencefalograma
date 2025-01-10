@@ -284,12 +284,13 @@ def personalized_model_record_kfold(
         data.test_recording = None
         echo('')
         echo(f'Model for Patient: {patient + 1}')
-        echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
         data.patient = patient
         num_recordings = data.len_patient_recordings
         recordings = np.array([i for i in range(num_recordings)])
 
         for recording in recordings:
+            echo(f'Recording Out: {recording + 1} / {num_recordings}')
+            echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
             data.is_test = False
             data.is_lstm = False
             data.test_recording = recording
@@ -546,6 +547,7 @@ def plot_roc(
         'Generalized Model (Patient KFold)',
         f'{USER} {time} Generalized Model ROC Curve Fold {name}.png',
     ))
+    plt.close()
 
 
 def plot_roc_curves(roc_curves):
@@ -574,6 +576,7 @@ def plot_roc_curves(roc_curves):
         '{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
     ))
     # plt.show()
+    plt.close()
 
 
 def kfold_boxplot(metrics: List[Tuple[float]], title_1: str, file_name: str):
@@ -602,6 +605,7 @@ def kfold_boxplot(metrics: List[Tuple[float]], title_1: str, file_name: str):
         'Generalized Model (Patient KFold)',
         f'{file_name}.png',
     ))
+    plt.close()
 
 
 def calculate_accuracy(probabilities, target_labels, threshold=0.5):

@@ -85,3 +85,4 @@ def plot_multiple_losses(loss_logs: list, path: str, title: str = ''):
 
     # Save plot
     plt.savefig(path)
+    plt.close()
