@@ -100,10 +100,10 @@ def load_seizures(
         if DEBUG:
             echo(f'Windows shape: {windows.shape}')
             echo(f'Classes shape: {classes.shape}')
-            echo(f'Patients starting position lenght: {
-                 len(patient_start_win)}')
-            echo(f'Recodings starting position length: {
-                 len(recording_start_win)}')
+            echo('Patients starting position lenght:' +
+                 f' {len(patient_start_win)}')
+            echo('Recodings starting position length:' +
+                 f' {len(recording_start_win)}')
 
         assert (
             windows.shape[0] == classes.shape[0]
