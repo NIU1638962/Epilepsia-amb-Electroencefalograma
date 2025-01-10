@@ -29,7 +29,7 @@ if USER == 'maed02':
     DATA_PATH = '../../../maed/EpilepsyDataSet/'
     RESULTS_PATH = '../Results/'
     TRAINED_MODELS_PATH = '../Trained Models/'
-elif USER == 'joanb':
+elif USER == 'Usuario':
     DATA_PATH = "../EpilepsyDataSet"
     RESULTS_PATH = '../Results/'
     TRAINED_MODELS_PATH = '../Trained Models/'

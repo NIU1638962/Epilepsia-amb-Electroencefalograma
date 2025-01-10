@@ -7,7 +7,7 @@ Created on Sat Dec 28 15:44:49 2024
 from torch.utils.data import Dataset, DataLoader
 
 
-def create_dataloader(dataset: Dataset, batch: int, shuffle: True) -> DataLoader:
+def create_dataloader(dataset: Dataset, batch: int, shuffle = True) -> DataLoader:
     """
     Create a dataloader with the given dataset and batch size.
 

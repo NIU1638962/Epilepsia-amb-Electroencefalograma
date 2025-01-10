@@ -228,33 +228,40 @@ def __train_epoch_lstm(
     window_batch
 ):
     running_loss = 0.0
-
+    epoch_loss = 0.0
     for idx, (windows, targets) in enumerate(loader):
-
+        windows = windows.squeeze(0)
+        
+        windows = windows.to(device)
         windows = bb.get_embeddings(windows)
-
         hn = None
         cn = None
+        targets = targets.squeeze(0)
 
-        for nw, (inputs, target) in enumerate(zip(windows, targets)):
-            inputs.to(device)
+        print(windows.shape, targets.shape)
+            
+        for i in range(0, windows.shape[0], window_batch):
+            inputs = windows[i:i+window_batch]
+            target = targets[i:i+window_batch]
 
+            inputs = inputs.unsqueeze(0)
             output, hn, cn = lstm(inputs, hn, cn)
+            hn = hn.detach()
+            cn = cn.detach()
+
             loss = loss_func(output, target.to(device))
-            loss.backward()
+            loss.backward(retain_graph=True)
             running_loss += loss.item()
-            if nw % window_batch == 0:
-                optimizer.step()
-                optimizer.zero_grad()
-                del inputs, output, loss, target
-                gc.collect()
-                torch.cuda.empty_cache()
-        if nw % window_batch != 0:
+            
             optimizer.step()
             optimizer.zero_grad()
+            del inputs, output, loss, target
+            gc.collect()
+            torch.cuda.empty_cache()
+        running_loss /= windows.shape[0]
+        epoch_loss += running_loss
 
-    epoch_loss = running_loss/len(loader)
-    echo(f'{"Train"} Loss: {epoch_loss:.4f}')
+    echo(f'{"Train"} Loss: {epoch_loss:.10f}')
     loss_log["train"].append(epoch_loss)
 
     return lstm, loss_log

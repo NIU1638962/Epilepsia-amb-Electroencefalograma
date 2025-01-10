@@ -16,11 +16,12 @@ import numpy as np
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 import sys
+import torch.nn.functional as F
 
 time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
 
-def patient_kfold(data, models, loss_func, batch_size, window_batch, device, model_params):
-    patients = np.array([i for i in range(24)])
+def patient_kfold(data, models, loss_func, batch_size, window_batch, device, model_params, num_patients = 24):
+    patients = np.array([i for i in range(num_patients)])
     roc_curves = []
     metrics = []
     for patient in patients:
@@ -29,18 +30,33 @@ def patient_kfold(data, models, loss_func, batch_size, window_batch, device, mod
         bb_model = models['BB']['model']()
         optimizer = models['BB']['optimizer'](bb_model.parameters(), lr = 0.001)
 
+        bb_model.to(device)
+
         bb_model, loss_log = train_classifier(bb_model, loss_func, device, dataloader, optimizer, models['BB']['num_epochs'])
+
+        plot_multiple_losses([loss_log], os.path.join(
+            RESULTS_PATH,
+            f'{USER} {time} BB_Loss_patient{patient}.png'
+        ),
+        f'Backbone Classifier patient ({patient})')
 
         bb_model.eval()
         lstm_model = models['LSTM']['model'](*model_params)
-        
+        lstm_model.to(device)
+
         data.is_lstm = True
         dataloader = create_dataloader(data, 1)
-
+        
         optimizer = models['LSTM']['optimizer'](lstm_model.parameters(), lr = 0.001)
 
         lstm_model, loss_log = train_lstm(bb_model, lstm_model, loss_func, device, dataloader, optimizer, models['LSTM']['num_epochs'], window_batch)
         
+        plot_multiple_losses([loss_log], os.path.join(
+            RESULTS_PATH,
+            f'{USER} {time} LSTM_Losses_patient{patient}.png'
+        ),
+        f'LSTM Classifier patient ({patient})')
+
         
         torch.save(
             bb_model.state_dict(),
@@ -56,7 +72,7 @@ def patient_kfold(data, models, loss_func, batch_size, window_batch, device, mod
             os.path.join(
                 TRAINED_MODELS_PATH,
                 'Patient_kfold',
-                f'{time}'+'bb_model_patient'+str(patient)+'.pth',
+                f'{time}'+'lstm_model_patient'+str(patient)+'.pth',
             ),
         )
 
@@ -69,6 +85,7 @@ def patient_kfold(data, models, loss_func, batch_size, window_batch, device, mod
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(preds, target_labels, str(patient)+"_patient", show = True)
         acc = calculate_accuracy(preds, target_labels, best_thr)
         metrics.append((best_thr, best_fpr, best_tpr, acc))
+        print(metrics)
         roc_auc = auc(fpr, tpr)
         roc_curves.append((fpr, tpr, roc_auc))
         
@@ -84,17 +101,25 @@ def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
     preds = []
     target_labels = []
     for idx, (windows, targets) in enumerate(dataloader):
+        windows = windows.squeeze(0)
+        
+        windows = windows.to(device)
         windows = bb_model.get_embeddings(windows)
         hn = None
         cn = None
-        for nw, (inputs, target) in enumerate(zip(windows, targets)):
-            inputs.to(device)
-            
-            output, hn, cn = lstm_model(inputs, hn, cn)
-            prob = torch.sigmoid(output)
-            
-            preds.append(prob)
-            target_labels.append(target)
+        targets = targets.squeeze(0)
+        output, _, _ = lstm_model(windows, hn, cn)
+        prob = F.softmax(output, dim=1) 
+        print(prob.shape, targets.shape)
+
+        prob = prob[:, 1]
+        
+        prob = prob.cpu().detach().numpy()
+        targets = targets.cpu().detach().numpy()
+        preds+=list(prob)
+        target_labels+=list(targets)
+
+        
     return preds, target_labels
 
 
@@ -133,9 +158,9 @@ def plot_roc(false_positive_rates: np.ndarray, true_positive_rates: np.ndarray, 
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve for H. Pylori Patch Classification')
+    plt.title('ROC Curve for Epilepsy LSTM')
     plt.legend()
-    plt.savefig("Roc_curve_fold_"+str(name)+".png")
+    plt.savefig(os.path.join(RESULTS_PATH, "ROC_CURVES", "Roc_curve_fold_"+str(name)+".png"))
 
 
 def plot_roc_curves(roc_curves):
@@ -172,7 +197,7 @@ def kfold_boxplot(metrics: list[tuple[float]], title_1: str, file_name: str):
     # Ajustar el espacio entre subplots
     plt.tight_layout()
 
-    plt.savefig(file_name+'.png')
+    plt.savefig(os.path.join(RESULTS_PATH, "Boxplots", file_name+'.png'))
 
 
 def calculate_accuracy(probabilities, target_labels, threshold=0.5):
