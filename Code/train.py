@@ -206,7 +206,7 @@ def train_lstm(
         #     if abs(loss_log['train'][-2] - loss_log['train'][-1]) < precission:
         #         break
 
-        echo(f'Epoch elapsed time: {epoch_time:.10f}s \n')
+        echo(f'Epoch elapsed time: {epoch_time:.10f}s')
 
         total_time += epoch_time
 

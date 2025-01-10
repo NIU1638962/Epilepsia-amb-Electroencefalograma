@@ -70,12 +70,14 @@ def generalized_model_patient_kfold(
             os.path.join(
                 PICKLE_PATH,
                 'Generalized Model (Patient KFold)',
-                f'{USER} {time} Backbone Loss'
+                f'{USER} {time}'
+                + ' Loss Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.pickle',
             ),
             'wb',
         ) as file:
             pickle.dump(loss_log, file)
-            
+
         plot_multiple_losses(
             [loss_log],
             os.path.join(
@@ -125,7 +127,7 @@ def generalized_model_patient_kfold(
         )
 
         loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
-        
+
         with open(
             os.path.join(
                 PICKLE_PATH,
@@ -135,7 +137,7 @@ def generalized_model_patient_kfold(
             'wb',
         ) as file:
             pickle.dump(loss_log, file)
-            
+
         plot_multiple_losses(
             [loss_log],
             os.path.join(
@@ -193,25 +195,35 @@ def generalized_model_patient_kfold(
         del bb_model, lstm_model
         gc.collect()
         torch.cuda.empty_cache()
-        
+
     metrics_stats = mean_kfold(metrics)
+    echo(
+        f'Best Threshold: {metrics_stats[0][0]:.10f}'
+        + f' ±{metrics_stats[0][1]:.10f}'
+        + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+        + f' ±{metrics_stats[1][1]:.10f}'
+        + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+        + f' ±{metrics_stats[2][1]:.10f}'
+        + f', Accuracy: {metrics_stats[3][0]:.10f}'
+        + f' ±{metrics_stats[3][1]:.10f}'
+    )
     plot_roc_curves(roc_curves)
-    
+
     with open(
         os.path.join(
             PICKLE_PATH,
             'Generalized Model (Patient KFold)',
-            f'{USER} {time} metrics'
+            f'{USER} {time} Metrics.pickle'
         ),
         'wb',
     ) as file:
         pickle.dump(metrics, file)
-        
+
     with open(
         os.path.join(
             PICKLE_PATH,
             'Generalized Model (Patient KFold)',
-            f'{USER} {time} metrics statistics'
+            f'{USER} {time} Statistical Metrics.pickle'
         ),
         'wb',
     ) as file:
@@ -264,7 +276,9 @@ def personalized_model_record_kfold(
     roc_curves = []
     metrics = []
     data.is_personalized = True
-    
+    data.is_test = False
+    data.test_recording = None
+
     for patient in patients:
         metrics = []
         data.test_recording = None
@@ -301,12 +315,14 @@ def personalized_model_record_kfold(
                 os.path.join(
                     PICKLE_PATH,
                     'Personalized Model (Recording KFold)',
-                    f'{USER} {time} Backbone Loss'
+                    f'{USER} {time}'
+                    + ' Loss Feature Level Fusion Backbone'
+                    + f' Patient {patient + 1} Recording {recording + 1}.pckl'
                 ),
                 'wb',
             ) as file:
                 pickle.dump(loss_log, file)
-                
+
             plot_multiple_losses(
                 [loss_log],
                 os.path.join(
@@ -316,7 +332,8 @@ def personalized_model_record_kfold(
                     + ' Loss Feature Level Fusion Backbone'
                     + f' Patient {patient + 1} Recording {recording + 1}.png',
                 ),
-                f'Backbone Classifier for Patient {patient + 1} for Recording {recording + 1}',
+                'Backbone for'
+                + f'Patient {patient + 1} for Recording {recording + 1}',
             )
 
             bb_model.eval()
@@ -356,17 +373,20 @@ def personalized_model_record_kfold(
             )
 
             loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
-            
+
             with open(
                 os.path.join(
                     PICKLE_PATH,
                     'Personalized Model (Recording KFold)',
-                    f'{USER} {time} LSTM Loss'
+                    f'{USER} {time}'
+                    + ' Loss LSTM with Feature Level Fusion Backbone'
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.pickle'
                 ),
                 'wb',
             ) as file:
                 pickle.dump(loss_log, file)
-                
+
             plot_multiple_losses(
                 [loss_log],
                 os.path.join(
@@ -376,7 +396,9 @@ def personalized_model_record_kfold(
                     + ' Loss LSTM with Feature Level Fusion Backbone'
                     + f' Patient {patient + 1} Recording {recording + 1}.png',
                 ),
-                f'LSTM Classifier for Patient {patient + 1} for Recording {recording + 1}',
+                'LSTM Classifier for'
+                + f' Patient {patient + 1} for'
+                + f' Recording {recording + 1}',
             )
 
             torch.save(
@@ -385,8 +407,9 @@ def personalized_model_record_kfold(
                     TRAINED_MODELS_PATH,
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
-                    + ' Model LSTM with Feature Level Fusion Backbone'
-                    + f' for Patient {patient + 1} Recording {recording + 1}.pth',
+                    + ' Model LSTM with Feature Level Fusion Backbone for'
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.pth',
                 ),
             )
 
@@ -406,7 +429,8 @@ def personalized_model_record_kfold(
             best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
                 predictions,
                 target_labels,
-                f'for Patient {patient + 1} for Recording {recording + 1}',
+                f'for Patient {patient + 1}'
+                + f' for Recording {recording + 1}',
                 show=True,
             )
 
@@ -426,25 +450,35 @@ def personalized_model_record_kfold(
             torch.cuda.empty_cache()
 
         metrics_stats = mean_kfold(metrics)
+        echo(
+            f'Best Threshold: {metrics_stats[0][0]:.10f}'
+            + f' ±{metrics_stats[0][1]:.10f}'
+            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+            + f' ±{metrics_stats[1][1]:.10f}'
+            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+            + f' ±{metrics_stats[2][1]:.10f}'
+            + f', Accuracy: {metrics_stats[3][0]:.10f}'
+            + f' ±{metrics_stats[3][1]:.10f}'
+        )
         plot_roc_curves(roc_curves)
-        
+
         with open(
             os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
-                f'for Patient {patient + 1}',
-                f'{USER} {time} metrics'
+                f'{USER} {time} Metrics' +
+                f' for Patient {patient + 1}.pickle',
             ),
             'wb',
         ) as file:
             pickle.dump(metrics, file)
-            
+
         with open(
             os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
-                f'for Patient {patient + 1}',
-                f'{USER} {time} metrics statistics'
+                f'{USER} {time} Statistical Metrics'
+                + f'for Patient {patient + 1}.pickle',
             ),
             'wb',
         ) as file:

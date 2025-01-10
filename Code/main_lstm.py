@@ -12,7 +12,7 @@ from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG
 from models import EpilepsyLSTMBB, FeatureLevelFusion, get_hyperparameters
 from utils import echo
-from kfold import generalized_model_patient_kfold
+from kfold import generalized_model_patient_kfold, personalized_model_record_kfold
 
 
 def main():
@@ -34,12 +34,12 @@ def main():
         'BB': {
             'model': FeatureLevelFusion,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 50,
+            'num_epochs': 5,
         },
         'LSTM': {
             'model': EpilepsyLSTMBB,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 15,
+            'num_epochs': 2,
         }
     }
 
@@ -62,6 +62,16 @@ def main():
     model_params = get_hyperparameters(config=1)
 
     generalized_model_patient_kfold(
+        data,
+        models,
+        loss_func,
+        batch_size,
+        window_batch,
+        device,
+        model_params,
+    )
+
+    personalized_model_record_kfold(
         data,
         models,
         loss_func,

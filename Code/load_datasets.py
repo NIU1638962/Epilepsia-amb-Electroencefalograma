@@ -45,7 +45,7 @@ def load_seizures(
     """
     files = os.listdir(path_root_directory)
     files = sorted([file for file in files if file.endswith(
-        ('.npz', '.parquet'))])
+        ('.npz', '.parquet'))])[:4]
     if DEBUG:
         echo(f'Files to read: {files}')
 
