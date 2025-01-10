@@ -25,7 +25,7 @@ import torch.nn.functional as F
 time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
 
 
-def patient_kfold(
+def generalized_model_patient_kfold(
         data,
         models,
         loss_func,
@@ -33,13 +33,21 @@ def patient_kfold(
         window_batch,
         device,
         model_params,
-        num_patients=24,
 ):
+    num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
     roc_curves = []
     metrics = []
+    data.is_personalized = False
+    data.test_recording = None
     for patient in patients:
+        echo('')
+        echo(f'Patient Out: {patient + 1}')
+        echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
+        data.is_test = False
+        data.is_lstm = False
         data.patient = patient
+
         dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
         optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
@@ -55,21 +63,37 @@ def patient_kfold(
             models['BB']['num_epochs'],
         )
 
-        loss_log['name'] = 'Feature Level Fusion'
+        loss_log['name'] = 'Feature Level Fusion Backbone'
 
         plot_multiple_losses(
             [loss_log],
             os.path.join(
                 RESULTS_PATH,
-                f'{USER} {time} BB_Loss_Patient_{patient}.png',
+                'Generalized Model (Patient KFold)',
+                f'{USER} {time}'
+                + ' Loss Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.png',
             ),
-            f'Backbone Classifier Patient Out {patient}',
+            f'Backbone Classifier Patient Out: {patient + 1}',
         )
 
         bb_model.eval()
+
+        torch.save(
+            bb_model.state_dict(),
+            os.path.join(
+                TRAINED_MODELS_PATH,
+                'Generalized Model (Patient KFold)',
+                f'{USER} {time}'
+                + ' Model Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.pth',
+            ),
+        )
+
         lstm_model = models['LSTM']['model'](*model_params)
         lstm_model.to(device)
 
+        echo('TRAINING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
         data.is_lstm = True
         dataloader = create_dataloader(data, 1)
 
@@ -95,28 +119,26 @@ def patient_kfold(
             [loss_log],
             os.path.join(
                 RESULTS_PATH,
-                f'{USER} {time} LSTM_Losses_Patient_{patient}.png',
+                'Generalized Model (Patient KFold)',
+                f'{USER} {time}'
+                + ' Loss LSTM with Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.png',
             ),
             f'LSTM Classifier Patient Out {patient}',
-        )
-
-        torch.save(
-            bb_model.state_dict(),
-            os.path.join(
-                TRAINED_MODELS_PATH,
-                'Patient KFold',
-                f'{time} Backbone Model Patient Out {patient}.pth',
-            ),
         )
 
         torch.save(
             lstm_model.state_dict(),
             os.path.join(
                 TRAINED_MODELS_PATH,
-                'Patient KFold',
-                f'{time} LSTM Model Patient Out {patient}.pth',
+                'Generalized Model (Patient KFold)',
+                f'{USER} {time}'
+                + ' Model LSTM with Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.pth',
             ),
         )
+
+        echo('TESTING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
 
         data.is_test = True
         dataloader = create_dataloader(data, 1)
@@ -127,13 +149,18 @@ def patient_kfold(
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
             preds,
             target_labels,
-            f'Patient Out {patient}',
+            f'Patient Out {patient + 1}',
             show=True,
         )
 
         acc = calculate_accuracy(preds, target_labels, best_thr)
         metrics.append((best_thr, best_fpr, best_tpr, acc))
-        echo(metrics)
+        echo(
+            f'Best Threshold: {metrics[-1][0]:.10f}'
+            + f', False Positive Rate: {metrics[-1][1]:.10f}'
+            + f', True Positive Rate: {metrics[-1][2]:.10f}'
+            + f', Accuracy: {metrics[-1][3]:.10f}'
+        )
         roc_auc = auc(fpr, tpr)
         roc_curves.append((fpr, tpr, roc_auc))
 
@@ -142,7 +169,11 @@ def patient_kfold(
         torch.cuda.empty_cache()
 
     plot_roc_curves(roc_curves)
-    kfold_boxplot(metrics, 'Patient KFold Boxplots', 'Patient KFold Boxplots')
+    kfold_boxplot(
+        metrics,
+        'Generalized Model (Patient KFold) Boxplots',
+        '{USER} {time} Generalized Model (Patient KFold) Boxplots',
+    )
 
 
 def test_patient_kfold(data, dataloader, bb_model, lstm_model, device):
@@ -222,21 +253,33 @@ def plot_roc(
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curve for Epilepsy LSTM with Feature Level Fusion Backbone')
+    plt.title(
+        'ROC Curve for Epilepsy LSTM with Feature Level Fusion Backbone Fold:'
+        + f' {name}'
+    )
     plt.legend()
     plt.savefig(os.path.join(
         RESULTS_PATH,
-        'Patient KFold',
-        f'ROC Curve Fold {name}.png',
+        'Generalized Model (Patient KFold)',
+        f'{USER} {time} Generalized Model ROC Curve Fold {name}.png',
     ))
 
 
 def plot_roc_curves(roc_curves):
     plt.figure(figsize=(10, 8))
     for i, (fpr, tpr, roc_auc) in enumerate(roc_curves):
-        plt.plot(fpr, tpr, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
-    plt.plot([0, 1], [0, 1], linestyle='--',
-             color='gray', label='Random Guess')
+        plt.plot(
+            fpr,
+            tpr,
+            label=f'Fold Patient Out {i+1} (AUC = {roc_auc:.2f})',
+        )
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        linestyle='--',
+        color='gray',
+        label='Random Guess',
+    )
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('ROC Curves Across K-Folds')
@@ -244,8 +287,8 @@ def plot_roc_curves(roc_curves):
     plt.grid(alpha=0.6, linestyle='--')
     plt.savefig(os.path.join(
         RESULTS_PATH,
-        'Patient KFold',
-        'KFold ROC Curves.png',
+        'Generalized Model (Patient KFold)',
+        '{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
     ))
     plt.show()
 
@@ -273,7 +316,7 @@ def kfold_boxplot(metrics: List[Tuple[float]], title_1: str, file_name: str):
 
     plt.savefig(os.path.join(
         RESULTS_PATH,
-        'Patient KFold',
+        'Generalized Model (Patient KFold)',
         f'{file_name}.png',
     ))
 

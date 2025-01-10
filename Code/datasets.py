@@ -6,7 +6,7 @@ Created on Sat Dec 28 15:27:34 2024
 """
 
 import numpy as np
-from torch import from_numpy, Tensor, int32, tensor
+from torch import from_numpy, Tensor, int64, tensor
 from torch.utils.data import Dataset
 
 from load_datasets import load_seizures
@@ -96,7 +96,7 @@ class SeizuresDataset(Dataset):
                 end = self.__len_windows
             else:
                 end = self.__recordings_start_idexes[index + 1]
-            index = tensor(range(start, end), dtype=int32)
+            index = tensor(range(start, end), dtype=int64)
 
         return self.__windows[index], self.__classes[index]
 

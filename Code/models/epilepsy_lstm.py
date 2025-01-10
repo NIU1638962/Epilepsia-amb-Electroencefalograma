@@ -95,8 +95,6 @@ class EpilepsyLSTMBB(nn.Module):
     def __init__(self, inputmodule_params, net_params, outmodule_params):
         super().__init__()
 
-        print('Running class: ', self.__class__.__name__)
-
         n_nodes = inputmodule_params['n_nodes']
 
         Lstacks = net_params['l_stacks']

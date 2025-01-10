@@ -90,8 +90,10 @@ def train_classifier(
 
         torch.cuda.empty_cache()
 
+    echo('-' * 10)
     echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch} '
          + f'after {total_time}s')
+    echo('-' * 10)
     model.load_state_dict(best_model_wts)
     loss_log['total_time'] = total_time
     return model, loss_log
@@ -204,14 +206,16 @@ def train_lstm(
         #     if abs(loss_log['train'][-2] - loss_log['train'][-1]) < precission:
         #         break
 
-        echo(f'Epoch elapsed time: {epoch_time:.4f}s \n')
+        echo(f'Epoch elapsed time: {epoch_time:.10f}s \n')
 
         total_time += epoch_time
 
         torch.cuda.empty_cache()
 
+    echo('-' * 10)
     echo(f'Best val Loss: {best_loss:.4f} at epoch {best_epoch} '
          + f'after {total_time}s')
+    echo('-' * 10)
     lstm.load_state_dict(best_model_wts)
     loss_log['total_time'] = total_time
     return lstm, loss_log
@@ -231,15 +235,13 @@ def __train_epoch_lstm(
     epoch_loss = 0.0
     for idx, (windows, targets) in enumerate(loader):
         windows = windows.squeeze(0)
-        
+
         windows = windows.to(device)
         windows = bb.get_embeddings(windows)
         hn = None
         cn = None
         targets = targets.squeeze(0)
 
-        print(windows.shape, targets.shape)
-            
         for i in range(0, windows.shape[0], window_batch):
             inputs = windows[i:i+window_batch]
             target = targets[i:i+window_batch]
@@ -252,7 +254,7 @@ def __train_epoch_lstm(
             loss = loss_func(output, target.to(device))
             loss.backward(retain_graph=True)
             running_loss += loss.item()
-            
+
             optimizer.step()
             optimizer.zero_grad()
             del inputs, output, loss, target

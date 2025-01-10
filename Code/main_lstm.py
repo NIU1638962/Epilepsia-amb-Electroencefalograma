@@ -12,7 +12,7 @@ from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG
 from models import EpilepsyLSTMBB, FeatureLevelFusion, get_hyperparameters
 from utils import echo
-from kfold import patient_kfold
+from kfold import generalized_model_patient_kfold
 
 
 def main():
@@ -34,16 +34,16 @@ def main():
         'BB': {
             'model': FeatureLevelFusion,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 50,
+            'num_epochs': 5,
         },
         'LSTM': {
             'model': EpilepsyLSTMBB,
             'optimizer': torch.optim.Adam,
-            'num_epochs': 15,
+            'num_epochs': 2,
         }
     }
 
-    echo('\n')
+    echo('')
 
     echo('READING DATASET')
 
@@ -51,6 +51,7 @@ def main():
 
     echo('DATASET READ')
     echo('')
+    echo('--Generalized Model--')
 
     loss_func = CrossEntropyLoss()
 
@@ -60,7 +61,7 @@ def main():
 
     model_params = get_hyperparameters(config=1)
 
-    patient_kfold(
+    generalized_model_patient_kfold(
         data,
         models,
         loss_func,
