@@ -132,7 +132,9 @@ def generalized_model_patient_kfold(
             os.path.join(
                 PICKLE_PATH,
                 'Generalized Model (Patient KFold)',
-                f'{USER} {time} LSTM Loss'
+                f'{USER} {time}'
+                + ' Loss LSTM with Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1}.pickle',
             ),
             'wb',
         ) as file:
@@ -177,7 +179,15 @@ def generalized_model_patient_kfold(
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
             predictions,
             target_labels,
-            f'Patient Out {patient + 1}',
+            'ROC Curve of Generalized LSTM with Feature Level Fusion Backbone'
+            + f'\nFold with Patient Out: {patient + 1}',
+            os.path.join(
+                RESULTS_PATH,
+                'Generalized Model (Patient KFold)',
+                f'{USER} {time}'
+                + ' ROC Curve LSTM with Feature Level Fusion Backbone'
+                + f' Fold with Patient Out {patient + 1}.png',
+            ),
             show=True,
         )
 
@@ -318,7 +328,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1} Recording {recording + 1}.pckl'
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.pickle'
                 ),
                 'wb',
             ) as file:
@@ -331,7 +342,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1} Recording {recording + 1}.png',
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.png',
                 ),
                 'Backbone for'
                 + f'Patient {patient + 1} for Recording {recording + 1}',
@@ -346,7 +358,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Model Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1} Recording {recording + 1}.pth',
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.pth',
                 ),
             )
 
@@ -395,9 +408,10 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1} Recording {recording + 1}.png',
+                    + f' Patient {patient + 1}'
+                    + f' Recording {recording + 1}.png',
                 ),
-                'LSTM Classifier for'
+                'LSTM with Feature Level Fusion Backbone for'
                 + f' Patient {patient + 1} for'
                 + f' Recording {recording + 1}',
             )
@@ -430,8 +444,17 @@ def personalized_model_record_kfold(
             best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
                 predictions,
                 target_labels,
-                f'for Patient {patient + 1}'
-                + f' for Recording {recording + 1}',
+                'ROC Curve of Personalized LSTM with Feature Level Fusion'
+                + f' Backbone\nfor Patient {patient + 1}'
+                + f' Fold with Record Out: {recording + 1}',
+                os.path.join(
+                    RESULTS_PATH,
+                    'Personalized Model (Recording KFold)',
+                    f'{USER} {time}'
+                    + ' ROC Curve LSTM with Feature Level Fusion Backbone'
+                    + f' for Patient {patient + 1}'
+                    + f' Fold with Record Out {recording + 1}.png',
+                ),
                 show=True,
             )
 
@@ -489,12 +512,13 @@ def personalized_model_record_kfold(
 def compute_train_roc(
         probs: List[float],
         target_labels: List[int],
-        name,
+        title: str,
+        file_name: str,
         show=False,
 ):
     fpr, tpr, thr = roc_curve(target_labels, probs)
     if show:
-        plot_roc(fpr, tpr, name)
+        plot_roc(fpr, tpr, title, file_name)
     best_threshold, best_fpr, best_tpr = get_best_thr(fpr, tpr, thr)
 
     return best_threshold, best_fpr, best_tpr, thr, fpr, tpr
@@ -525,28 +549,22 @@ def dist_thr(false_positive_rate: float, true_positive_rate: float) -> float:
 def plot_roc(
         false_positive_rates: np.ndarray,
         true_positive_rates: np.ndarray,
-        name,
+        title: str,
+        file_name: str,
 ):
     roc_auc = auc(false_positive_rates, true_positive_rates)
     # Plot the ROC curve
     plt.figure()
     plt.plot(false_positive_rates, true_positive_rates,
-             label='ROC curve (area = %0.2f)' % roc_auc)
+             label=f'ROC curve (area = {roc_auc:.5f})')
     plt.plot([0, 1], [0, 1], 'k--', label='No Skill')
     plt.xlim([-0.05, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title(
-        'ROC Curve for Epilepsy LSTM with Feature Level Fusion Backbone Fold:'
-        + f' {name}'
-    )
+    plt.title(title)
     plt.legend()
-    plt.savefig(os.path.join(
-        RESULTS_PATH,
-        'Generalized Model (Patient KFold)',
-        f'{USER} {time} Generalized Model ROC Curve Fold {name}.png',
-    ))
+    plt.savefig(file_name)
     plt.close()
 
 
@@ -573,7 +591,7 @@ def plot_roc_curves(roc_curves):
     plt.savefig(os.path.join(
         RESULTS_PATH,
         'Generalized Model (Patient KFold)',
-        '{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
+        f'{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
     ))
     # plt.show()
     plt.close()
