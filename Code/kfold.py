@@ -217,7 +217,16 @@ def generalized_model_patient_kfold(
         + f', Accuracy: {metrics_stats[3][0]:.10f}'
         + f' ±{metrics_stats[3][1]:.10f}'
     )
-    plot_roc_curves(roc_curves)
+    plot_roc_curves(
+        roc_curves,
+        'Fold with Patient Out',
+        'ROC Curves Across K-Folds for Generalized Model',
+        os.path.join(
+            RESULTS_PATH,
+            'Generalized Model (Patient KFold)',
+            f'{USER} {time} ROC Curves Across K-Folds.png',
+        ),
+    )
 
     with open(
         os.path.join(
@@ -299,6 +308,7 @@ def personalized_model_record_kfold(
         recordings = np.array([i for i in range(num_recordings)])
 
         for recording in recordings:
+            echo('')
             echo(f'Recording Out: {recording + 1} / {num_recordings}')
             echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
             data.is_test = False
@@ -484,7 +494,19 @@ def personalized_model_record_kfold(
             + f', Accuracy: {metrics_stats[3][0]:.10f}'
             + f' ±{metrics_stats[3][1]:.10f}'
         )
-        plot_roc_curves(roc_curves)
+        plot_roc_curves(
+            roc_curves,
+            roc_curves,
+            'Fold with Recording Out',
+            'ROC Curves Across K-Folds for Personalized Model'
+            + f' for Patient {patient + 1}',
+            os.path.join(
+                RESULTS_PATH,
+                'Personalized Model (Recording KFold)',
+                f'{USER} {time} ROC Curves Across K-Folds'
+                + f' for Patient {patient + 1}.png',
+            ),
+        )
 
         with open(
             os.path.join(
@@ -568,13 +590,13 @@ def plot_roc(
     plt.close()
 
 
-def plot_roc_curves(roc_curves):
+def plot_roc_curves(roc_curves, label_title, title, file_name):
     plt.figure(figsize=(10, 8))
     for i, (fpr, tpr, roc_auc) in enumerate(roc_curves):
         plt.plot(
             fpr,
             tpr,
-            label=f'Fold Patient Out {i+1} (AUC = {roc_auc:.2f})',
+            label=f'{label_title}: {i+1} (AUC = {roc_auc:.2f})',
         )
     plt.plot(
         [0, 1],
@@ -585,14 +607,10 @@ def plot_roc_curves(roc_curves):
     )
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ROC Curves Across K-Folds')
+    plt.title(title)
     plt.legend(loc='lower right')
     plt.grid(alpha=0.6, linestyle='--')
-    plt.savefig(os.path.join(
-        RESULTS_PATH,
-        'Generalized Model (Patient KFold)',
-        f'{USER} {time} Generalized Model (Patient KFold) ROC Curves.png',
-    ))
+    plt.savefig(file_name)
     # plt.show()
     plt.close()
 
