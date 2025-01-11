@@ -496,7 +496,6 @@ def personalized_model_record_kfold(
         )
         plot_roc_curves(
             roc_curves,
-            roc_curves,
             'Fold with Recording Out',
             'ROC Curves Across K-Folds for Personalized Model'
             + f' for Patient {patient + 1}',
