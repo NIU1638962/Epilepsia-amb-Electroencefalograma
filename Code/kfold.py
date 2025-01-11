@@ -292,14 +292,13 @@ def personalized_model_record_kfold(
 ):
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
-    roc_curves = []
-    metrics = []
     data.is_personalized = True
     data.is_test = False
     data.test_recording = None
 
     for patient in patients:
         metrics = []
+        roc_curves = []
         data.test_recording = None
         echo('')
         echo(f'Model for Patient: {patient + 1}')
