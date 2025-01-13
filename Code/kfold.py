@@ -290,6 +290,10 @@ def test_model_kfold(
         preds += list(prob)
         target_labels += list(targets)
 
+        del windows, targets, prob, output
+        gc.collect()
+        torch.cuda.empty_cache()
+
     return preds, target_labels
 
 
@@ -404,6 +408,10 @@ def test_model_backbone(
         targets = targets.cpu().detach().numpy()
         preds += list(prob)
         target_labels += list(targets)
+
+        del inputs, targets, prob, outputs
+        gc.collect()
+        torch.cuda.empty_cache()
     return preds, target_labels
 
 
