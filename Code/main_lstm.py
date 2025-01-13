@@ -70,6 +70,7 @@ def main():
         window_batch,
         device,
         model_params,
+        saved_models=True,
     )
 
     echo('')
