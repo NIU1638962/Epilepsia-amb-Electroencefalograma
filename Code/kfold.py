@@ -594,7 +594,7 @@ def plot_roc_curves(roc_curves, label_title, title, file_name):
         plt.plot(
             fpr,
             tpr,
-            label=f'{label_title}: {i+1} (AUC = {roc_auc:.2f})',
+            label=f'{label_title}: {i+1} (AUC = {roc_auc:.5f})',
         )
     plt.plot(
         [0, 1],
