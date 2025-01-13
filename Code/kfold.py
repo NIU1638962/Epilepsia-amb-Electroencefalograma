@@ -52,7 +52,10 @@ def generalized_model_patient_kfold(
 
         dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
-        optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
+        optimizer_backbone = models['BB']['optimizer'](
+            bb_model.parameters(),
+            lr=0.001,
+        )
 
         bb_model.to(device)
         if (saved_models):
@@ -67,7 +70,7 @@ def generalized_model_patient_kfold(
                 loss_func,
                 device,
                 dataloader,
-                optimizer,
+                optimizer_backbone,
                 models['BB']['num_epochs'],
             )
 
@@ -116,7 +119,7 @@ def generalized_model_patient_kfold(
         data.is_lstm = True
         dataloader = create_dataloader(data, 1)
 
-        optimizer = models['LSTM']['optimizer'](
+        optimizer_lstm = models['LSTM']['optimizer'](
             lstm_model.parameters(),
             lr=0.001,
         )
@@ -133,7 +136,7 @@ def generalized_model_patient_kfold(
                 loss_func,
                 device,
                 dataloader,
-                optimizer,
+                optimizer_lstm,
                 models['LSTM']['num_epochs'],
                 window_batch,
             )
@@ -214,7 +217,7 @@ def generalized_model_patient_kfold(
         roc_auc = auc(fpr, tpr)
         roc_curves.append((fpr, tpr, roc_auc))
 
-        del bb_model, lstm_model
+        del bb_model, lstm_model, optimizer_backbone, optimizer_lstm
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -294,16 +297,32 @@ def test_model_kfold(
         gc.collect()
         torch.cuda.empty_cache()
 
+    free_memory, total_memory = torch.cuda.mem_get_info(device)
+
+    used_memory = (total_memory - free_memory)
+
+    free_memory_mb = free_memory / 1024 ** 2
+    total_memory_mb = total_memory / 1024 ** 2
+    used_memory_mb = used_memory / 1024 ** 2
+
+    echo(
+        f'Total Memory: {total_memory_mb}MB'
+        + f', Used Memory: {used_memory_mb}:MB'
+        + f', Free Memory: {free_memory_mb}MB'
+    )
+
     return preds, target_labels
 
 
-def test_BB(data,
-            models,
-            loss_func,
-            batch_size,
-            window_batch,
-            device,
-            model_params,):
+def test_BB(
+        data,
+        models,
+        loss_func,
+        batch_size,
+        window_batch,
+        device,
+        model_params,
+):
 
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
@@ -327,7 +346,7 @@ def test_BB(data,
                          'Model Feature Level Fusion Backbone'
                          + f' Patient Out {patient + 1:02d}.pth')))
 
-        optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
+        # optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
 
         bb_model.to(device)
 
@@ -390,7 +409,8 @@ def test_BB(data,
 def test_model_backbone(
         dataloader,
         bb_model,
-        device,):
+        device,
+):
 
     bb_model.eval()
     preds = []
@@ -449,7 +469,7 @@ def personalized_model_record_kfold(
             data.test_recording = recording
             dataloader = create_dataloader(data, batch_size)
             bb_model = models['BB']['model']()
-            optimizer = models['BB']['optimizer'](
+            optimizer_backbone = models['BB']['optimizer'](
                 bb_model.parameters(), lr=0.001)
 
             bb_model.to(device)
@@ -459,7 +479,7 @@ def personalized_model_record_kfold(
                 loss_func,
                 device,
                 dataloader,
-                optimizer,
+                optimizer_backbone,
                 models['BB']['num_epochs'],
             )
 
@@ -513,7 +533,7 @@ def personalized_model_record_kfold(
             data.is_lstm = True
             dataloader = create_dataloader(data, 1)
 
-            optimizer = models['LSTM']['optimizer'](
+            optimizer_lstm = models['LSTM']['optimizer'](
                 lstm_model.parameters(),
                 lr=0.001,
             )
@@ -524,7 +544,7 @@ def personalized_model_record_kfold(
                 loss_func,
                 device,
                 dataloader,
-                optimizer,
+                optimizer_lstm,
                 models['LSTM']['num_epochs'],
                 window_batch,
             )
@@ -612,7 +632,7 @@ def personalized_model_record_kfold(
             roc_auc = auc(fpr, tpr)
             roc_curves.append((fpr, tpr, roc_auc))
 
-            del bb_model, lstm_model
+            del bb_model, lstm_model, optimizer_backbone, optimizer_lstm
             gc.collect()
             torch.cuda.empty_cache()
 
