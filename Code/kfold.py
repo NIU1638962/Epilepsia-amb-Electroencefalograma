@@ -34,7 +34,7 @@ def generalized_model_patient_kfold(
         window_batch,
         device,
         model_params,
-        saved_models=False
+        saved_models=False,
 ):
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
