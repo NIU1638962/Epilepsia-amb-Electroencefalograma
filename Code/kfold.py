@@ -34,7 +34,7 @@ def generalized_model_patient_kfold(
         window_batch,
         device,
         model_params,
-        saved_models = False
+        saved_models=False
 ):
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
@@ -55,19 +55,12 @@ def generalized_model_patient_kfold(
         optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
 
         bb_model.to(device)
-        if(saved_models):
-            if(patient + 1 < 10):
-                bb_model.load_state_dict(torch.load(
-                                os.path.join(TRAINED_MODELS_PATH, 
-                                'Generalized Model (Patient KFold)', 
-                                'Model Feature Level Fusion Backbone'
-                                + f' Patient Out 0{patient + 1}.pth')))
-            else:
-                bb_model.load_state_dict(torch.load(
-                                os.path.join(TRAINED_MODELS_PATH, 
-                                'Generalized Model (Patient KFold)', 
-                                'Model Feature Level Fusion Backbone'
-                                + f' Patient Out {patient + 1}.pth')))
+        if (saved_models):
+            bb_model.load_state_dict(torch.load(
+                os.path.join(TRAINED_MODELS_PATH,
+                             'Generalized Model (Patient KFold)',
+                             'Model Feature Level Fusion Backbone'
+                             + f' Patient Out {patient + 1:02d}.pth')))
         else:
             bb_model, loss_log = train_classifier(
                 bb_model,
@@ -86,7 +79,7 @@ def generalized_model_patient_kfold(
                     'Generalized Model (Patient KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient Out {patient + 1}.pickle',
+                    + f' Patient Out {patient + 1:02d}.pickle',
                 ),
                 'wb',
             ) as file:
@@ -99,24 +92,22 @@ def generalized_model_patient_kfold(
                     'Generalized Model (Patient KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient Out {patient + 1}.png',
+                    + f' Patient Out {patient + 1:02d}.png',
                 ),
                 f'Backbone Classifier Patient Out: {patient + 1}',
             )
             torch.save(
-            bb_model.state_dict(),
-            os.path.join(
-                TRAINED_MODELS_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Model Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.pth',
-            ),
+                bb_model.state_dict(),
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Model Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1:02d}.pth',
+                ),
             )
 
         bb_model.eval()
-
-        
 
         lstm_model = models['LSTM']['model'](*model_params)
         lstm_model.to(device)
@@ -129,19 +120,12 @@ def generalized_model_patient_kfold(
             lstm_model.parameters(),
             lr=0.001,
         )
-        if(saved_models):
-            if(patient + 1 < 10):
-                lstm_model.load_state_dict(torch.load(
-                                os.path.join(TRAINED_MODELS_PATH, 
-                                'Generalized Model (Patient KFold)', 
-                                'Model LSTM with Feature Level Fusion Backbone'
-                                + f' Patient Out 0{patient + 1}.pth')))
-            else:
-                lstm_model.load_state_dict(torch.load(
-                                os.path.join(TRAINED_MODELS_PATH, 
-                                'Generalized Model (Patient KFold)', 
-                                'Model LSTM with Feature Level Fusion Backbone'
-                                + f' Patient Out {patient + 1}.pth')))
+        if (saved_models):
+            lstm_model.load_state_dict(torch.load(
+                os.path.join(TRAINED_MODELS_PATH,
+                             'Generalized Model (Patient KFold)',
+                             'Model LSTM with Feature Level Fusion Backbone'
+                             + f' Patient Out {patient + 1:02d}.pth')))
         else:
             lstm_model, loss_log = train_lstm(
                 bb_model,
@@ -162,7 +146,7 @@ def generalized_model_patient_kfold(
                     'Generalized Model (Patient KFold)',
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient Out {patient + 1}.pickle',
+                    + f' Patient Out {patient + 1:02d}.pickle',
                 ),
                 'wb',
             ) as file:
@@ -175,7 +159,7 @@ def generalized_model_patient_kfold(
                     'Generalized Model (Patient KFold)',
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient Out {patient + 1}.png',
+                    + f' Patient Out {patient + 1:02d}.png',
                 ),
                 f'LSTM Classifier Patient Out {patient + 1}',
             )
@@ -187,7 +171,7 @@ def generalized_model_patient_kfold(
                     'Generalized Model (Patient KFold)',
                     f'{USER} {time}'
                     + ' Model LSTM with Feature Level Fusion Backbone'
-                    + f' Patient Out {patient + 1}.pth',
+                    + f' Patient Out {patient + 1:02d}.pth',
                 ),
             )
 
@@ -214,7 +198,7 @@ def generalized_model_patient_kfold(
                 'Generalized Model (Patient KFold)',
                 f'{USER} {time}'
                 + ' ROC Curve LSTM with Feature Level Fusion Backbone'
-                + f' Fold with Patient Out {patient + 1}.png',
+                + f' Fold with Patient Out {patient + 1:02d}.png',
             ),
             show=True,
         )
@@ -333,18 +317,11 @@ def test_BB(data,
 
         dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
-        if(patient + 1 < 10):
-            bb_model.load_state_dict(torch.load(
-                os.path.join(TRAINED_MODELS_PATH,
-                             'Generalized Model (Patient KFold)',
-                             'Model Feature Level Fusion Backbone'
-                             + f' Patient Out 0{patient + 1}.pth')))
-        else:
-            bb_model.load_state_dict(torch.load(
-                os.path.join(TRAINED_MODELS_PATH,
-                             'Generalized Model (Patient KFold)',
-                             'Model Feature Level Fusion Backbone'
-                             + f' Patient Out {patient + 1}.pth')))
+        bb_model.load_state_dict(torch.load(
+            os.path.join(TRAINED_MODELS_PATH,
+                         'Generalized Model (Patient KFold)',
+                         'Model Feature Level Fusion Backbone'
+                         + f' Patient Out {patient + 1:02d}.pth')))
 
         optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
 
@@ -363,7 +340,7 @@ def test_BB(data,
                 'Generalized Model (Patient KFold)',
                 f'{USER} {time}'
                 + ' ROC Curve with Feature Level Fusion Backbone'
-                + f' Fold with Patient Out {patient + 1}.png',
+                + f' Fold with Patient Out {patient + 1:02d}.png',
             ),
             show=True,
         )
@@ -486,8 +463,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.pickle'
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.pickle'
                 ),
                 'wb',
             ) as file:
@@ -500,8 +477,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.png',
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.png',
                 ),
                 'Backbone for'
                 + f'Patient {patient + 1} for Recording {recording + 1}',
@@ -516,8 +493,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Model Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.pth',
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.pth',
                 ),
             )
 
@@ -552,8 +529,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.pickle'
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.pickle'
                 ),
                 'wb',
             ) as file:
@@ -566,8 +543,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.png',
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.png',
                 ),
                 'LSTM with Feature Level Fusion Backbone for'
                 + f' Patient {patient + 1} for'
@@ -581,8 +558,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' Model LSTM with Feature Level Fusion Backbone for'
-                    + f' Patient {patient + 1}'
-                    + f' Recording {recording + 1}.pth',
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.pth',
                 ),
             )
 
@@ -610,8 +587,8 @@ def personalized_model_record_kfold(
                     'Personalized Model (Recording KFold)',
                     f'{USER} {time}'
                     + ' ROC Curve LSTM with Feature Level Fusion Backbone'
-                    + f' for Patient {patient + 1}'
-                    + f' Fold with Record Out {recording + 1}.png',
+                    + f' for Patient {patient + 1:02d}'
+                    + f' Fold with Record Out {recording + 1:02d}.png',
                 ),
                 show=True,
             )
@@ -651,7 +628,7 @@ def personalized_model_record_kfold(
                 RESULTS_PATH,
                 'Personalized Model (Recording KFold)',
                 f'{USER} {time} ROC Curves Across K-Folds'
-                + f' for Patient {patient + 1}.png',
+                + f' for Patient {patient + 1:02d}.png',
             ),
         )
 
@@ -660,7 +637,7 @@ def personalized_model_record_kfold(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 f'{USER} {time} Metrics' +
-                f' for Patient {patient + 1}.pickle',
+                f' for Patient {patient + 1:02d}.pickle',
             ),
             'wb',
         ) as file:
@@ -671,7 +648,7 @@ def personalized_model_record_kfold(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 f'{USER} {time} Statistical Metrics'
-                + f'for Patient {patient + 1}.pickle',
+                + f'for Patient {patient + 1:02d}.pickle',
             ),
             'wb',
         ) as file:
