@@ -34,6 +34,7 @@ def generalized_model_patient_kfold(
         window_batch,
         device,
         model_params,
+        saved_models = False
 ):
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
@@ -54,45 +55,55 @@ def generalized_model_patient_kfold(
         optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
 
         bb_model.to(device)
+        if(saved_models):
+            if(patient + 1 < 10):
+                bb_model.load_state_dict(torch.load(
+                                os.path.join(TRAINED_MODELS_PATH, 
+                                'Generalized Model (Patient KFold)', 
+                                'Model Feature Level Fusion Backbone'
+                                + f' Patient Out 0{patient + 1}.pth')))
+            else:
+                bb_model.load_state_dict(torch.load(
+                                os.path.join(TRAINED_MODELS_PATH, 
+                                'Generalized Model (Patient KFold)', 
+                                'Model Feature Level Fusion Backbone'
+                                + f' Patient Out {patient + 1}.pth')))
+        else:
+            bb_model, loss_log = train_classifier(
+                bb_model,
+                loss_func,
+                device,
+                dataloader,
+                optimizer,
+                models['BB']['num_epochs'],
+            )
 
-        bb_model, loss_log = train_classifier(
-            bb_model,
-            loss_func,
-            device,
-            dataloader,
-            optimizer,
-            models['BB']['num_epochs'],
-        )
+            loss_log['name'] = 'Feature Level Fusion Backbone'
 
-        loss_log['name'] = 'Feature Level Fusion Backbone'
+            with open(
+                os.path.join(
+                    PICKLE_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Loss Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1}.pickle',
+                ),
+                'wb',
+            ) as file:
+                pickle.dump(loss_log, file)
 
-        with open(
-            os.path.join(
-                PICKLE_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Loss Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(loss_log, file)
-
-        plot_multiple_losses(
-            [loss_log],
-            os.path.join(
-                RESULTS_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Loss Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.png',
-            ),
-            f'Backbone Classifier Patient Out: {patient + 1}',
-        )
-
-        bb_model.eval()
-
-        torch.save(
+            plot_multiple_losses(
+                [loss_log],
+                os.path.join(
+                    RESULTS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Loss Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1}.png',
+                ),
+                f'Backbone Classifier Patient Out: {patient + 1}',
+            )
+            torch.save(
             bb_model.state_dict(),
             os.path.join(
                 TRAINED_MODELS_PATH,
@@ -101,7 +112,11 @@ def generalized_model_patient_kfold(
                 + ' Model Feature Level Fusion Backbone'
                 + f' Patient Out {patient + 1}.pth',
             ),
-        )
+            )
+
+        bb_model.eval()
+
+        
 
         lstm_model = models['LSTM']['model'](*model_params)
         lstm_model.to(device)
@@ -114,54 +129,67 @@ def generalized_model_patient_kfold(
             lstm_model.parameters(),
             lr=0.001,
         )
+        if(saved_models):
+            if(patient + 1 < 10):
+                lstm_model.load_state_dict(torch.load(
+                                os.path.join(TRAINED_MODELS_PATH, 
+                                'Generalized Model (Patient KFold)', 
+                                'Model LSTM with Feature Level Fusion Backbone'
+                                + f' Patient Out 0{patient + 1}.pth')))
+            else:
+                lstm_model.load_state_dict(torch.load(
+                                os.path.join(TRAINED_MODELS_PATH, 
+                                'Generalized Model (Patient KFold)', 
+                                'Model LSTM with Feature Level Fusion Backbone'
+                                + f' Patient Out {patient + 1}.pth')))
+        else:
+            lstm_model, loss_log = train_lstm(
+                bb_model,
+                lstm_model,
+                loss_func,
+                device,
+                dataloader,
+                optimizer,
+                models['LSTM']['num_epochs'],
+                window_batch,
+            )
 
-        lstm_model, loss_log = train_lstm(
-            bb_model,
-            lstm_model,
-            loss_func,
-            device,
-            dataloader,
-            optimizer,
-            models['LSTM']['num_epochs'],
-            window_batch,
-        )
+            loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
 
-        loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
+            with open(
+                os.path.join(
+                    PICKLE_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Loss LSTM with Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1}.pickle',
+                ),
+                'wb',
+            ) as file:
+                pickle.dump(loss_log, file)
 
-        with open(
-            os.path.join(
-                PICKLE_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Loss LSTM with Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(loss_log, file)
+            plot_multiple_losses(
+                [loss_log],
+                os.path.join(
+                    RESULTS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Loss LSTM with Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1}.png',
+                ),
+                f'LSTM Classifier Patient Out {patient + 1}',
+            )
 
-        plot_multiple_losses(
-            [loss_log],
-            os.path.join(
-                RESULTS_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Loss LSTM with Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.png',
-            ),
-            f'LSTM Classifier Patient Out {patient + 1}',
-        )
-
-        torch.save(
-            lstm_model.state_dict(),
-            os.path.join(
-                TRAINED_MODELS_PATH,
-                'Generalized Model (Patient KFold)',
-                f'{USER} {time}'
-                + ' Model LSTM with Feature Level Fusion Backbone'
-                + f' Patient Out {patient + 1}.pth',
-            ),
-        )
+            torch.save(
+                lstm_model.state_dict(),
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    f'{USER} {time}'
+                    + ' Model LSTM with Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1}.pth',
+                ),
+            )
 
         echo('TESTING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
 
@@ -305,7 +333,7 @@ def test_BB(data,
 
         dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
-        if (patient + 1 < 10):
+        if(patient + 1 < 10):
             bb_model.load_state_dict(torch.load(
                 os.path.join(TRAINED_MODELS_PATH,
                              'Generalized Model (Patient KFold)',
