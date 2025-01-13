@@ -277,19 +277,20 @@ def test_model_kfold(
     target_labels = []
     for idx, (windows, targets) in enumerate(dataloader):
         windows = windows.squeeze(0)
-
+        
         windows = windows.to(device)
-        windows = bb_model.get_embeddings(windows)
-        hn = None
-        cn = None
-        targets = targets.squeeze(0)
-        output, _, _ = lstm_model(windows, hn, cn)
-        prob = F.softmax(output, dim=1)
+        with torch.no_grad:
+            windows = bb_model.get_embeddings(windows)
+            hn = None
+            cn = None
+            targets = targets.squeeze(0)
+            output, _, _ = lstm_model(windows, hn, cn)
+            prob = F.softmax(output, dim=1)
 
-        prob = prob[:, 1]
+            prob = prob[:, 1]
 
-        preds += list(prob.cpu().detach().numpy())
-        target_labels += list(targets.cpu().detach().numpy())
+            preds += list(prob.cpu().detach().numpy())
+            target_labels += list(targets.cpu().detach().numpy())
 
         del windows, targets, prob, output
         gc.collect()
