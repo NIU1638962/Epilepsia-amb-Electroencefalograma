@@ -295,7 +295,7 @@ def test_model_kfold(
         gc.collect()
         torch.cuda.empty_cache()
 
-    free_memory, total_memory = torch.cuda.mem_get_info(device)
+    free_memory, total_memory = torch.cuda.mem_get_info(torch.cuda.current_device())
 
     used_memory = (total_memory - free_memory)
 
