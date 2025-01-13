@@ -56,7 +56,7 @@ def generalized_model_patient_kfold(
 
         bb_model.to(device)
         if(saved_models):
-            if(patient + 1 <= 10):
+            if(patient + 1 < 10):
                 bb_model.load_state_dict(torch.load(
                                 os.path.join(TRAINED_MODELS_PATH, 
                                 'Generalized Model (Patient KFold)', 
@@ -130,7 +130,7 @@ def generalized_model_patient_kfold(
             lr=0.001,
         )
         if(saved_models):
-            if(patient + 1 <= 10):
+            if(patient + 1 < 10):
                 lstm_model.load_state_dict(torch.load(
                                 os.path.join(TRAINED_MODELS_PATH, 
                                 'Generalized Model (Patient KFold)', 
@@ -332,7 +332,7 @@ def test_BB(data,
 
         dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
-        if(patient + 1 <= 10):
+        if(patient + 1 < 10):
             bb_model.load_state_dict(torch.load(
                             os.path.join(TRAINED_MODELS_PATH, 
                             'Generalized Model (Patient KFold)', 
