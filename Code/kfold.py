@@ -288,10 +288,8 @@ def test_model_kfold(
 
         prob = prob[:, 1]
 
-        prob = prob.cpu().detach().numpy()
-        targets = targets.cpu().detach().numpy()
-        preds += list(prob)
-        target_labels += list(targets)
+        preds += list(prob.cpu().detach().numpy())
+        target_labels += list(targets.cpu().detach().numpy())
 
         del windows, targets, prob, output
         gc.collect()
@@ -424,10 +422,8 @@ def test_model_backbone(
 
         prob = prob[:, 1]
 
-        prob = prob.cpu().detach().numpy()
-        targets = targets.cpu().detach().numpy()
-        preds += list(prob)
-        target_labels += list(targets)
+        preds += list(prob.cpu().detach().numpy())
+        target_labels += list(targets.cpu().detach().numpy())
 
         del inputs, targets, prob, outputs
         gc.collect()
