@@ -189,6 +189,7 @@ def generalized_model_patient_kfold(
             bb_model,
             lstm_model,
             device,
+            window_batch,
         )
 
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
@@ -270,6 +271,7 @@ def test_model_kfold(
         bb_model,
         lstm_model,
         device,
+        window_batch,
 ):
     bb_model.eval()
     lstm_model.eval()
@@ -277,38 +279,47 @@ def test_model_kfold(
     target_labels = []
     for idx, (windows, targets) in enumerate(dataloader):
         windows = windows.squeeze(0)
-        
-        windows = windows.to(device)
-        with torch.no_grad:
-            windows = bb_model.get_embeddings(windows)
-            hn = None
-            cn = None
-            targets = targets.squeeze(0)
-            output, _, _ = lstm_model(windows, hn, cn)
-            prob = F.softmax(output, dim=1)
 
-            prob = prob[:, 1]
+        echo(windows.shape)
 
-            preds += list(prob.cpu().detach().numpy())
-            target_labels += list(targets.cpu().detach().numpy())
+        hn = None
+        cn = None
 
-        del windows, targets, prob, output
-        gc.collect()
-        torch.cuda.empty_cache()
+        for i in range(0, windows.shape[0], window_batch):
+            inputs = windows[i:i+window_batch]
+            target = targets[i:i+window_batch]
+            with torch.no_grad:
+                inputs = bb_model.get_embeddings(inputs)
 
-    free_memory, total_memory = torch.cuda.mem_get_info(torch.cuda.current_device())
+                target = target.squeeze(0)
+                output, hn, cn = lstm_model(inputs, hn, cn)
+                hn = hn.detach()
+                cn = cn.detach()
+                prob = F.softmax(output, dim=1)
 
-    used_memory = (total_memory - free_memory)
+                prob = prob[:, 1]
 
-    free_memory_mb = free_memory / 1024 ** 2
-    total_memory_mb = total_memory / 1024 ** 2
-    used_memory_mb = used_memory / 1024 ** 2
+                preds += list(prob.cpu().detach().numpy())
+                target_labels += list(target.cpu().detach().numpy())
 
-    echo(
-        f'Total Memory: {total_memory_mb}MB'
-        + f', Used Memory: {used_memory_mb}:MB'
-        + f', Free Memory: {free_memory_mb}MB'
-    )
+            del inputs, target, prob, output
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        free_memory, total_memory = torch.cuda.mem_get_info(
+            torch.cuda.current_device())
+
+        used_memory = (total_memory - free_memory)
+
+        free_memory_mb = free_memory / 1024 ** 2
+        total_memory_mb = total_memory / 1024 ** 2
+        used_memory_mb = used_memory / 1024 ** 2
+
+        echo(
+            f'Total Memory: {total_memory_mb}MB'
+            + f', Used Memory: {used_memory_mb}:MB'
+            + f', Free Memory: {free_memory_mb}MB'
+        )
 
     return preds, target_labels
 
@@ -599,6 +610,7 @@ def personalized_model_record_kfold(
                 bb_model,
                 lstm_model,
                 device,
+                window_batch,
             )
 
             best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
