@@ -1134,6 +1134,18 @@ def mean_kfold(metrics: List[Tuple[float]]) -> List[Tuple[float, float]]:
 
 def gen_personalized_boxplots():
     pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Generalized Model (Patient KFold)'))
+    file = sorted([file for file in pickle_files if file.startswith(
+        'Metrics')])
+
+    with open(os.path.join(
+            PICKLE_PATH,
+            'Generalized Model (Patient KFold)',
+            file[0]), 'rb') as metrics:
+
+        gen_metric_values = pickle.load(metrics)
+
+    pickle_files = os.listdir(os.path.join(
         PICKLE_PATH, 'Personalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
         'Metrics')])
@@ -1156,13 +1168,14 @@ def gen_personalized_boxplots():
 
     names = ['Threshold', 'False Positive Rate',
              'True Positive Rate', 'Accuracy']
-    for (metric_idx, patient_values), name in zip(metric_values.items(), names):
+    for (metric_idx, patient_values), gen_values, name in zip(metric_values.items(), zip(*gen_metric_values), names):
         # Flaten los valores por paciente para cada métrica
         patient_metrics = [np.array(values).flatten()
                            for values in patient_values]
-        print(patient_metrics)
         # Crear boxplot
         plt.figure(figsize=(8, 6))
+
+        plt.gcf().canvas.setWindowTitle(name + "Boxplots for Perzonalized")
         boxplot = plt.boxplot(patient_metrics, labels=[
             f"{i+1}" for i in range(len(patient_metrics))], patch_artist=True)
 
@@ -1171,6 +1184,12 @@ def gen_personalized_boxplots():
 
             plt.text(i+1, -0.09, f'({len(data[i])})',
                      ha='center', va='bottom', fontsize=10, color='black')
+        
+        for i, point in enumerate(gen_values):
+            plt.scatter(i+1, point, color='red', label='Generalized' if i == 0 else "", zorder=3, marker = 'D')
+
+        for x in range(1, len(patient_metrics) + 1):
+            plt.axvline(x=x, color='gray', linestyle='--', linewidth=0.5, zorder=1)
 
         plt.ylim((0, 1))
         plt.title(f'{name}', fontweight='bold')
@@ -1178,6 +1197,9 @@ def gen_personalized_boxplots():
         plt.ylabel(name+' Values', fontweight='bold')
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
+
+        plt.legend(loc='upper right', fontsize=10)
+
         plt.show()
 
 
@@ -1245,5 +1267,5 @@ def gen_gen_v_per_boxplots():
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
         plt.show()
-# gen_personalized_boxplots()
-# gen_gen_v_per_boxplots()
+#gen_personalized_boxplots()
+#gen_gen_v_per_boxplots()
