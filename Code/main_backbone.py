@@ -12,15 +12,18 @@ from datetime import datetime, timezone
 import torch
 
 from torch.nn import CrossEntropyLoss
-from dataloaders import create_dataloader
-from datasets import SeizuresDataset
-from environ import DATA_PATH, DEBUG, RESULTS_PATH, TRAINED_MODELS_PATH, USER
+
+from environ import DATA_PATH, DEBUG
+from kfold import backbones_model_kfold
+from load_datasets import load_seizures
 from models import FeatureLevelFusion, InputLevelFusion
-from train import train_classifier
-from utils import echo, plot_multiple_losses
+from utils import echo
 
 
-def main():
+def main(
+        execute_backbone: bool = True,
+        saved_models_backbone: bool = False,
+):
     """
     Contain main logic.
 
@@ -29,82 +32,70 @@ def main():
     None.
 
     """
-    time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if DEBUG:
         echo(f'Device: "{device}"')
 
     models = {
-        'Input Level Fusion': InputLevelFusion,
-        'Feature Level Fusion': FeatureLevelFusion,
+        'Input Level Fusion': {
+            'model': InputLevelFusion,
+            'optimizer': torch.optim.Adam,
+            'num_epochs': 50,
+            'model_type': 'Input Level Fusion',
+        },
+        'Feature Level Fusion': {
+            'model': FeatureLevelFusion,
+            'optimizer': torch.optim.Adam,
+            'num_epochs': 50,
+            'model_type': 'Feature Level Fusion',
+        },
     }
 
     echo('\n')
 
     echo('READING DATASET')
 
-    data = SeizuresDataset(DATA_PATH)
+    data = {}
+
+    data['windows'], data['classes'], _, _ = load_seizures(DATA_PATH)
+
+    del _
+
+    gc.collect()
+    torch.cuda.empty_cache()
 
     batch_size = 1024
 
-    loader = create_dataloader(data, batch_size)
+    num_splits = 5
 
     echo('DATASET READ')
 
     echo('')
 
-    losses = []
+    for model in models.items():
+        if execute_backbone:
+            echo('')
+            echo(f'--{model["model_type"]} Model--')
 
-    for model_type, model in models.items():
-        echo('')
-        echo(f'Training {model_type} Model:')
+            loss_func = CrossEntropyLoss()
 
-        model = model()
+            backbones_model_kfold(
+                data,
+                model,
+                loss_func,
+                batch_size,
+                device,
+                num_splits,
+                saved_models_backbone,
+            )
 
-        loss_func = CrossEntropyLoss()
-
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-        num_epochs = 50
-
-        model.to(device)
-
-        model, log_loss = train_classifier(
-            model,
-            loss_func,
-            device,
-            loader,
-            optimizer,
-            num_epochs,
-        )
-
-        log_loss['name'] = model_type
-
-        torch.save(
-            model.state_dict(),
-            os.path.join(
-                TRAINED_MODELS_PATH,
-                f'{USER} {time} {model_type} Model.pth',
-            ),
-        )
-
-        losses.append(log_loss)
-
-        del model
-
-        gc.collect()
-        torch.cuda.empty_cache()
-
-    plot_multiple_losses(
-        losses,
-        os.path.join(
-            RESULTS_PATH,
-            f'{USER} {time} Losses.png'
-        ),
-        f'Backbone Classifier ({batch_size})',
-    )
+            gc.collect()
+            torch.cuda.empty_cache()
 
 
 if __name__ == '__main__':
-    main()
+    main(
+        execute_backbone=True,
+        saved_models_backbone=False,
+    )

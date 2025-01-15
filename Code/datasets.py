@@ -13,6 +13,8 @@ from load_datasets import load_seizures
 
 from environ import DATA_PATH
 
+###############################################################################
+
 
 class SeizuresDataset(Dataset):
     """Torch Dataset with the seizures information loaded."""
@@ -64,13 +66,13 @@ class SeizuresDataset(Dataset):
         self.__load_data()
         self.__calculate_internal_indexes()
 
-    def __getitem__(self, index: Tensor) -> Tensor:
+    def __getitem__(self, index: int) -> Tensor:
         """
         Return a slice of the dataset.
 
         Parameters
         ----------
-        index : Torch Tensor
+        index : integer
             Indexes to return.
 
         Returns
@@ -107,7 +109,7 @@ class SeizuresDataset(Dataset):
         Returns
         -------
         integer
-            Length of windows or recordings dependin on is_lstm.
+            Length of windows or recordings depending on internal parameters.
 
         """
         return self.__len
@@ -117,6 +119,7 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                              Protected Methods                              #
+
 
     def __load_data(self):  # noqa
         windows, classes, patient_start_idexes, recordings_start_idexes = load_seizures(
@@ -257,6 +260,7 @@ class SeizuresDataset(Dataset):
 
 ###############################################################################
 #                                  Properties                                 #
+
 
     @property  # noqa
     def is_lstm(self) -> bool:
@@ -402,5 +406,48 @@ class SeizuresDataset(Dataset):
 
 
 ###############################################################################
+
+class SimpleSeizuresDataset(Dataset):
+    """Torch Dataset with the seizures information loaded. Does not know about patients or recordings."""
+
+    __slots__ = ('__classes', '__windows')
+
+###############################################################################
+#                             Overloaded Operators                            #
+
+    def __init__(self, windows, classes):
+        self.__windows = from_numpy(windows)
+        self.__classes = from_numpy(classes)
+
+    def __getitem__(self, index: int) -> Tensor:
+        """
+        Return a slice of the dataset.
+
+        Parameters
+        ----------
+        index : integer
+            Indexes to return.
+
+        Returns
+        -------
+        Tensor
+            Slice of the dataset.
+
+        """
+        return self.__windows[index], self.__classes[index]
+
+    def __len__(self) -> int:
+        """
+        Length of the Dataset.
+
+        Returns
+        -------
+        integer
+            Length of windows.
+
+        """
+        return len(self.__windows)
+
+
 if __name__ == "__main__":
     dataset = SeizuresDataset(DATA_PATH)

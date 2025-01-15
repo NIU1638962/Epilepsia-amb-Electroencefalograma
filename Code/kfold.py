@@ -12,18 +12,219 @@ from typing import List, Tuple
 
 import torch
 
+from datasets import SimpleSeizuresDataset
 from dataloaders import create_dataloader
 from environ import RESULTS_PATH, TRAINED_MODELS_PATH, USER, PICKLE_PATH
 from train import train_classifier, train_lstm
 from utils import echo, plot_multiple_losses
 import numpy as np
 from sklearn.metrics import roc_curve, auc
+from sklearn.model_selection import StratifiedKFold
 import matplotlib.pyplot as plt
 import sys
 import torch.nn.functional as F
 import pickle
 
 time = datetime.now(timezone.utc).strftime('%Y-%m-%d--%H-%M--%Z')
+
+
+def backbones_model_kfold(
+        data,
+        model,
+        loss_func,
+        batch_size,
+        device,
+        num_splits,
+        saved_models=False,
+):
+    SUB_FOLDER = 'Backbones (Windows KFold)'
+    metrics = []
+    roc_curves = []
+
+    stratified_kfold = StratifiedKFold(
+        n_splits=num_splits,
+        shuffle=True,
+        random_state=10,
+    )
+
+    for i, (train_index, test_index) in enumerate(stratified_kfold.split(data['windows'], data['classes'])):
+        echo('')
+        echo(f'Fold: {i + 1}')
+
+        dataloader_training = create_dataloader(
+            SimpleSeizuresDataset(
+                data['windows'][train_index],
+                data['classes'][train_index],
+            ),
+            batch_size,
+        )
+
+        bb_model = model['model']()
+
+        bb_model.to(device)
+
+        if saved_models:
+            bb_model.load_state_dict(torch.load(
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    SUB_FOLDER,
+                    f' Model {model["model_type"]} Backbone'
+                    + f' KFold {i + 1:02d}.pth',
+                ),
+            ))
+
+        else:
+            echo('TRAINING BACKBONE')
+
+            optimizer_backbone = model['optimizer'](
+                bb_model.parameters(),
+                lr=0.001,
+            )
+
+            model, loss_log = train_classifier(
+                model,
+                loss_func,
+                device,
+                dataloader_training,
+                optimizer_backbone,
+                model['num_epochs'],
+            )
+
+            loss_log['name'] = model['model_type']
+
+            with open(
+                os.path.join(
+                    PICKLE_PATH,
+                    SUB_FOLDER,
+                    f'{USER} {time}'
+                    + f' Loss {model["model_type"]} Backbone'
+                    + f' KFold {i + 1:02d}.pickle',
+                ),
+                'wb',
+            ) as file:
+                pickle.dump(loss_log, file)
+
+            plot_multiple_losses(
+                [loss_log],
+                os.path.join(
+                    RESULTS_PATH,
+                    SUB_FOLDER,
+                    f'{USER} {time}'
+                    + f' Loss {model["model_type"]} Backbone'
+                    + f' KFold {i + 1:02d}.png',
+                ),
+                f'Backbone Classifier ({batch_size}) Fold: {i + 1}',
+            )
+
+            torch.save(
+                model.state_dict(),
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    SUB_FOLDER,
+                    f'{USER} {time}'
+                    + f' Model {model["model_type"]} Backbone'
+                    + f' KFold {i + 1:02d}.pth',
+                ),
+            )
+
+            del dataloader_training, optimizer_backbone
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        echo('TESTING BACKBONE')
+
+        dataloader_testing = create_dataloader(
+            SimpleSeizuresDataset(
+                data['windows'][test_index],
+                data['classes'][test_index],
+            ),
+            batch_size,
+        )
+
+        predictions, target_labels = test_model_backbone(
+            dataloader_testing,
+            bb_model,
+            device,
+        )
+
+        best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
+            predictions,
+            target_labels,
+            'ROC Curve of {model["model_type"]} Backbone'
+            + f'\nFold: {i + 1}',
+            os.path.join(
+                RESULTS_PATH,
+                SUB_FOLDER,
+                f'{USER} {time}'
+                + ' ROC Curve of {model["model_type"]} Backbone'
+                + f' Fold: {i + 1:02d}.png',
+            ),
+            show=True,
+        )
+
+        accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+
+        metrics.append((best_thr, best_fpr, best_tpr, accuracy))
+
+        echo(
+            f'Best Threshold: {metrics[-1][0]:.10f}'
+            + f', False Positive Rate: {metrics[-1][1]:.10f}'
+            + f', True Positive Rate: {metrics[-1][2]:.10f}'
+            + f', Accuracy: {metrics[-1][3]:.10f}'
+        )
+
+        roc_auc = auc(fpr, tpr)
+
+        roc_curves.append((fpr, tpr, roc_auc))
+
+        del bb_model, dataloader_testing
+        gc.collect()
+        torch.cuda.empty_cache()
+
+    metrics_stats = mean_kfold(metrics)
+    echo(
+        f'Best Threshold: {metrics_stats[0][0]:.10f}'
+        + f' ±{metrics_stats[0][1]:.10f}'
+        + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+        + f' ±{metrics_stats[1][1]:.10f}'
+        + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+        + f' ±{metrics_stats[2][1]:.10f}'
+        + f', Accuracy: {metrics_stats[3][0]:.10f}'
+        + f' ±{metrics_stats[3][1]:.10f}'
+    )
+    plot_roc_curves(
+        roc_curves,
+        'Fold',
+        'ROC Curves Across K-Folds of {model["model_type"]} Backbone',
+        os.path.join(
+            RESULTS_PATH,
+            SUB_FOLDER,
+            f'{USER} {time} '
+            + f'ROC Curves Across K-Folds of {model["model_type"]} Backbone.png',
+        ),
+    )
+
+    with open(
+        os.path.join(
+            PICKLE_PATH,
+            SUB_FOLDER,
+            f'{USER} {time}'
+            + f' Metrics of {model["model_type"]} Backbone.pickle',
+        ),
+        'wb',
+    ) as file:
+        pickle.dump(metrics, file)
+
+    with open(
+        os.path.join(
+            PICKLE_PATH,
+            SUB_FOLDER,
+            f'{USER} {time}'
+            + f' Statistical Metrics of {model["model_type"]} Backbone.pickle',
+        ),
+        'wb',
+    ) as file:
+        pickle.dump(metrics_stats, file)
 
 
 def generalized_model_patient_kfold(
@@ -36,6 +237,7 @@ def generalized_model_patient_kfold(
         model_params,
         saved_models=False,
 ):
+    SUB_FOLDER = 'Generalized Model (Patient KFold)'
     num_patients = data.num_patients
 
     patients = np.array([i for i in range(num_patients)])
@@ -62,7 +264,7 @@ def generalized_model_patient_kfold(
             bb_model.load_state_dict(torch.load(
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     'Model Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pth',
                 ),
@@ -92,7 +294,7 @@ def generalized_model_patient_kfold(
             with open(
                 os.path.join(
                     PICKLE_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pickle',
@@ -105,7 +307,7 @@ def generalized_model_patient_kfold(
                 [loss_log],
                 os.path.join(
                     RESULTS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Loss Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.png',
@@ -117,7 +319,7 @@ def generalized_model_patient_kfold(
                 bb_model.state_dict(),
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Model Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pth',
@@ -139,7 +341,7 @@ def generalized_model_patient_kfold(
             lstm_model.load_state_dict(torch.load(
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     'Model LSTM with Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pth',
                 ),
@@ -171,7 +373,7 @@ def generalized_model_patient_kfold(
             with open(
                 os.path.join(
                     PICKLE_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pickle',
@@ -184,7 +386,7 @@ def generalized_model_patient_kfold(
                 [loss_log],
                 os.path.join(
                     RESULTS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Loss LSTM with Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.png',
@@ -196,7 +398,7 @@ def generalized_model_patient_kfold(
                 lstm_model.state_dict(),
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    'Generalized Model (Patient KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' Model LSTM with Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pth',
@@ -273,7 +475,7 @@ def generalized_model_patient_kfold(
         'ROC Curves Across K-Folds for Generalized Model',
         os.path.join(
             RESULTS_PATH,
-            'Generalized Model (Patient KFold)',
+            SUB_FOLDER,
             f'{USER} {time} ROC Curves Across K-Folds.png',
         ),
     )
@@ -281,7 +483,7 @@ def generalized_model_patient_kfold(
     with open(
         os.path.join(
             PICKLE_PATH,
-            'Generalized Model (Patient KFold)',
+            SUB_FOLDER,
             f'{USER} {time} Metrics.pickle'
         ),
         'wb',
@@ -291,7 +493,7 @@ def generalized_model_patient_kfold(
     with open(
         os.path.join(
             PICKLE_PATH,
-            'Generalized Model (Patient KFold)',
+            SUB_FOLDER,
             f'{USER} {time} Statistical Metrics.pickle'
         ),
         'wb',
@@ -309,6 +511,7 @@ def personalized_model_record_kfold(
         model_params,
         saved_models=False,
 ):
+    SUB_FOLDER = 'Personalized Model (Recording KFold)'
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
     data.is_personalized = True
@@ -339,7 +542,7 @@ def personalized_model_record_kfold(
                 bb_model.load_state_dict(torch.load(
                     os.path.join(
                         TRAINED_MODELS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         'Model Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
                         + f' Recording {recording + 1:02d}.pth',
@@ -370,9 +573,8 @@ def personalized_model_record_kfold(
                 with open(
                     os.path.join(
                         PICKLE_PATH,
-                        'Personalized Model (Recording KFold)',
-                        f'{USER} {time}'
-                        + ' Loss Feature Level Fusion Backbone'
+                        SUB_FOLDER,
+                        'Loss Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
                         + f' Recording {recording + 1:02d}.pickle'
                     ),
@@ -384,7 +586,7 @@ def personalized_model_record_kfold(
                     [loss_log],
                     os.path.join(
                         RESULTS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Loss Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
@@ -398,7 +600,7 @@ def personalized_model_record_kfold(
                     bb_model.state_dict(),
                     os.path.join(
                         TRAINED_MODELS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Model Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
@@ -421,7 +623,7 @@ def personalized_model_record_kfold(
                 lstm_model.load_state_dict(torch.load(
                     os.path.join(
                         TRAINED_MODELS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Model LSTM with Feature Level Fusion Backbone for'
                         + f' Patient {patient + 1:02d}'
@@ -455,7 +657,7 @@ def personalized_model_record_kfold(
                 with open(
                     os.path.join(
                         PICKLE_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Loss LSTM with Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
@@ -469,7 +671,7 @@ def personalized_model_record_kfold(
                     [loss_log],
                     os.path.join(
                         RESULTS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Loss LSTM with Feature Level Fusion Backbone'
                         + f' Patient {patient + 1:02d}'
@@ -484,7 +686,7 @@ def personalized_model_record_kfold(
                     lstm_model.state_dict(),
                     os.path.join(
                         TRAINED_MODELS_PATH,
-                        'Personalized Model (Recording KFold)',
+                        SUB_FOLDER,
                         f'{USER} {time}'
                         + ' Model LSTM with Feature Level Fusion Backbone for'
                         + f' Patient {patient + 1:02d}'
@@ -517,7 +719,7 @@ def personalized_model_record_kfold(
                 + f' Fold with Record Out: {recording + 1}',
                 os.path.join(
                     RESULTS_PATH,
-                    'Personalized Model (Recording KFold)',
+                    SUB_FOLDER,
                     f'{USER} {time}'
                     + ' ROC Curve LSTM with Feature Level Fusion Backbone'
                     + f' for Patient {patient + 1:02d}'
@@ -563,7 +765,7 @@ def personalized_model_record_kfold(
             + f' for Patient {patient + 1}',
             os.path.join(
                 RESULTS_PATH,
-                'Personalized Model (Recording KFold)',
+                SUB_FOLDER,
                 f'{USER} {time} ROC Curves Across K-Folds'
                 + f' for Patient {patient + 1:02d}.png',
             ),
@@ -572,7 +774,7 @@ def personalized_model_record_kfold(
         with open(
             os.path.join(
                 PICKLE_PATH,
-                'Personalized Model (Recording KFold)',
+                SUB_FOLDER,
                 f'{USER} {time} Metrics' +
                 f' for Patient {patient + 1:02d}.pickle',
             ),
@@ -583,7 +785,7 @@ def personalized_model_record_kfold(
         with open(
             os.path.join(
                 PICKLE_PATH,
-                'Personalized Model (Recording KFold)',
+                SUB_FOLDER,
                 f'{USER} {time} Statistical Metrics'
                 + f'for Patient {patient + 1:02d}.pickle',
             ),
@@ -592,7 +794,7 @@ def personalized_model_record_kfold(
             pickle.dump(metrics_stats, file)
 
 
-def test_backbones(
+def test_backbone(
         data,
         models,
         loss_func,
@@ -601,7 +803,7 @@ def test_backbones(
         device,
         model_params,
 ):
-
+    SUB_FOLDER = 'Generalized Model (Patient KFold, Only Backbone)'
     num_patients = data.num_patients
     patients = np.array([i for i in range(num_patients)])
     roc_curves = []
@@ -611,7 +813,7 @@ def test_backbones(
     for patient in patients:
         echo('')
         echo(f'Patient Out: {patient + 1}')
-        echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
+        echo('TESTING FEATURE LEVEL FUSION BACKBONE')
         data.is_test = True
         data.is_lstm = False
         data.patient = patient
@@ -621,7 +823,7 @@ def test_backbones(
         bb_model.load_state_dict(torch.load(
             os.path.join(
                 TRAINED_MODELS_PATH,
-                'Generalized Model (Patient KFold)',
+                SUB_FOLDER,
                 'Model Feature Level Fusion Backbone'
                 + f' Patient Out {patient + 1:02d}.pth',
             ),
@@ -642,7 +844,7 @@ def test_backbones(
             + f'\nFold with Patient Out: {patient + 1}',
             os.path.join(
                 RESULTS_PATH,
-                'Generalized Model (Patient KFold)',
+                SUB_FOLDER,
                 f'{USER} {time}'
                 + ' ROC Curve with Feature Level Fusion Backbone'
                 + f' Fold with Patient Out {patient + 1:02d}.png',
@@ -686,7 +888,7 @@ def test_backbones(
         'ROC Curves Across K-Folds for Generalized Model (Only Backbone)',
         os.path.join(
             RESULTS_PATH,
-            'Generalized Model (Patient KFold, Only Backbone)',
+            SUB_FOLDER,
             f'{USER} {time} ROC Curves Across K-Folds.png',
         ),
     )
@@ -963,7 +1165,7 @@ def gen_personalized_boxplots():
         # Crear boxplot
         plt.figure(figsize=(8, 6))
         boxplot = plt.boxplot(patient_metrics, labels=[
-                              f"{i+1}" for i in range(len(patient_metrics))], patch_artist=True)
+            f"{i+1}" for i in range(len(patient_metrics))], patch_artist=True)
 
         for i, box in enumerate(boxplot['boxes']):
             box.set_facecolor('skyblue')
