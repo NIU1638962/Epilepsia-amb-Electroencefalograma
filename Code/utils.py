@@ -55,12 +55,10 @@ def standarize_files(directory):
             if part[:4] in ('maed', '2024', '2025'):
                 to_delete.append(index)
 
-        del index, part
-
         for i, index in enumerate(to_delete):
             del file_parts[index - i]
 
-        del i, index, to_delete
+        del to_delete
 
         new_file_name = ' '.join(file_parts)
 

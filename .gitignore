@@ -163,3 +163,4 @@ cython_debug/
 *.npz
 *.crdownload
 EpilepsyDataSet/
+maed*
