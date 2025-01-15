@@ -81,8 +81,8 @@ def backbones_model_kfold(
                 lr=0.001,
             )
 
-            model, loss_log = train_classifier(
-                model,
+            bb_model, loss_log = train_classifier(
+                bb_model,
                 loss_func,
                 device,
                 dataloader_training,
@@ -117,7 +117,7 @@ def backbones_model_kfold(
             )
 
             torch.save(
-                model.state_dict(),
+                bb_model.state_dict(),
                 os.path.join(
                     TRAINED_MODELS_PATH,
                     SUB_FOLDER,
