@@ -341,7 +341,7 @@ def personalized_model_record_kfold(
                         TRAINED_MODELS_PATH,
                         'Personalized Model (Recording KFold)',
                         'Model Feature Level Fusion Backbone'
-                        + f' Patient Out {patient + 1:02d}'
+                        + f' Patient {patient + 1:02d}'
                         + f' Recording {recording + 1:02d}.pth',
                     ),
                 ))
@@ -930,20 +930,22 @@ def mean_kfold(metrics: List[Tuple[float]]) -> List[Tuple[float, float]]:
         metrics_stats.append((media, desviacion))
     return metrics_stats
 
+
 def gen_personalized_boxplots():
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Personalized Model (Recording KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Personalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
-    
+        'Metrics')])
+
     data = []
     for file in files:
         with open(os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 file), 'rb') as metrics:
-            
+
             data.append(pickle.load(metrics))
-        
+
     num_metrics = len(data[0][0])
     metric_values = {i: [] for i in range(num_metrics)}
 
@@ -951,52 +953,58 @@ def gen_personalized_boxplots():
         for i in range(num_metrics):
             metric_values[i].append([recording[i] for recording in patient])
 
-    names = ['Threshold', 'False Positive Rate', 'True Positive Rate', 'Accuracy']
+    names = ['Threshold', 'False Positive Rate',
+             'True Positive Rate', 'Accuracy']
     for (metric_idx, patient_values), name in zip(metric_values.items(), names):
         # Flaten los valores por paciente para cada métrica
-        patient_metrics = [np.array(values).flatten() for values in patient_values]
+        patient_metrics = [np.array(values).flatten()
+                           for values in patient_values]
 
         # Crear boxplot
         plt.figure(figsize=(8, 6))
-        boxplot = plt.boxplot(patient_metrics, labels=[f"{i+1}" for i in range(len(patient_metrics))], patch_artist=True)
-        
+        boxplot = plt.boxplot(patient_metrics, labels=[
+                              f"{i+1}" for i in range(len(patient_metrics))], patch_artist=True)
+
         for i, box in enumerate(boxplot['boxes']):
             box.set_facecolor('skyblue')
-            
+
             plt.text(i+1, -0.09, f'({len(data[i])})',
-                    ha='center', va='bottom', fontsize=10, color='black')
-            
-        plt.ylim((0,1))
+                     ha='center', va='bottom', fontsize=10, color='black')
+
+        plt.ylim((0, 1))
         plt.title(f'{name}', fontweight='bold')
         plt.xlabel('Patients (N recordings)', labelpad=15, fontweight='bold')
         plt.ylabel(name+' Values', fontweight='bold')
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
         plt.show()
-        
+
+
 def gen_gen_v_per_boxplots():
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Generalized Model (Recording KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Generalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
-    
+        'Metrics')])
+
     data = []
     for file in files:
         with open(os.path.join(
                 PICKLE_PATH,
                 'Generalized Model (Recording KFold)',
                 file), 'rb') as metrics:
-            
+
             data.append(pickle.load(metrics))
 
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Personalized Model (Recording KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Personalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
-    
+        'Metrics')])
+
     data = []
     for file in files:
         with open(os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 file), 'rb') as metrics:
-            
+
             data.append(pickle.load(metrics))
