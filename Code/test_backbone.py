@@ -12,7 +12,7 @@ from datasets import SeizuresDataset
 from environ import DATA_PATH, DEBUG
 from models import EpilepsyLSTMBB, FeatureLevelFusion, get_hyperparameters
 from utils import echo
-from kfold import generalized_model_patient_kfold, personalized_model_record_kfold, test_BB
+from kfold import test_backbones
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
     echo('')
     echo('--Generalized Model--')
 
-    test_BB(
+    test_backbones(
         data,
         models,
         loss_func,

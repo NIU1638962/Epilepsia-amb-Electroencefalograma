@@ -37,39 +37,52 @@ def generalized_model_patient_kfold(
         saved_models=False,
 ):
     num_patients = data.num_patients
+
     patients = np.array([i for i in range(num_patients)])
+
     roc_curves = []
     metrics = []
+
     data.is_personalized = False
     data.test_recording = None
+
     for patient in patients:
         echo('')
         echo(f'Patient Out: {patient + 1}')
-        echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
+
         data.is_test = False
         data.is_lstm = False
         data.patient = patient
 
-        dataloader = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
-        optimizer_backbone = models['BB']['optimizer'](
-            bb_model.parameters(),
-            lr=0.001,
-        )
 
         bb_model.to(device)
-        if (saved_models):
+
+        if saved_models:
             bb_model.load_state_dict(torch.load(
-                os.path.join(TRAINED_MODELS_PATH,
-                             'Generalized Model (Patient KFold)',
-                             'Model Feature Level Fusion Backbone'
-                             + f' Patient Out {patient + 1:02d}.pth')))
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    'Model Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1:02d}.pth',
+                ),
+            ))
+
         else:
+            echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
+
+            dataloader_training_backbone = create_dataloader(data, batch_size)
+
+            optimizer_backbone = models['BB']['optimizer'](
+                bb_model.parameters(),
+                lr=0.001,
+            )
+
             bb_model, loss_log = train_classifier(
                 bb_model,
                 loss_func,
                 device,
-                dataloader,
+                dataloader_training_backbone,
                 optimizer_backbone,
                 models['BB']['num_epochs'],
             )
@@ -99,6 +112,7 @@ def generalized_model_patient_kfold(
                 ),
                 f'Backbone Classifier Patient Out: {patient + 1}',
             )
+
             torch.save(
                 bb_model.state_dict(),
                 os.path.join(
@@ -110,32 +124,43 @@ def generalized_model_patient_kfold(
                 ),
             )
 
+            del dataloader_training_backbone, optimizer_backbone
+            gc.collect()
+            torch.cuda.empty_cache()
+
         bb_model.eval()
+
+        data.is_lstm = True
 
         lstm_model = models['LSTM']['model'](*model_params)
         lstm_model.to(device)
 
-        echo('TRAINING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
-        data.is_lstm = True
-        dataloader = create_dataloader(data, 1)
-
-        optimizer_lstm = models['LSTM']['optimizer'](
-            lstm_model.parameters(),
-            lr=0.001,
-        )
-        if (saved_models):
+        if saved_models:
             lstm_model.load_state_dict(torch.load(
-                os.path.join(TRAINED_MODELS_PATH,
-                             'Generalized Model (Patient KFold)',
-                             'Model LSTM with Feature Level Fusion Backbone'
-                             + f' Patient Out {patient + 1:02d}.pth')))
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    'Generalized Model (Patient KFold)',
+                    'Model LSTM with Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1:02d}.pth',
+                ),
+            ))
+
         else:
+            echo('TRAINING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
+
+            dataloader_training_lstm = create_dataloader(data, 1)
+
+            optimizer_lstm = models['LSTM']['optimizer'](
+                lstm_model.parameters(),
+                lr=0.001,
+            )
+
             lstm_model, loss_log = train_lstm(
                 bb_model,
                 lstm_model,
                 loss_func,
                 device,
-                dataloader,
+                dataloader_training_lstm,
                 optimizer_lstm,
                 models['LSTM']['num_epochs'],
                 window_batch,
@@ -178,14 +203,18 @@ def generalized_model_patient_kfold(
                 ),
             )
 
+            del dataloader_training_lstm, optimizer_lstm
+            gc.collect()
+            torch.cuda.empty_cache()
+
         echo('TESTING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
 
         data.is_test = True
-        dataloader = create_dataloader(data, 1)
+        dataloader_testing = create_dataloader(data, 1)
 
         predictions, target_labels = test_model_kfold(
             data,
-            dataloader,
+            dataloader_testing,
             bb_model,
             lstm_model,
             device,
@@ -207,21 +236,26 @@ def generalized_model_patient_kfold(
         )
 
         accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+
         metrics.append((best_thr, best_fpr, best_tpr, accuracy))
+
         echo(
             f'Best Threshold: {metrics[-1][0]:.10f}'
             + f', False Positive Rate: {metrics[-1][1]:.10f}'
             + f', True Positive Rate: {metrics[-1][2]:.10f}'
             + f', Accuracy: {metrics[-1][3]:.10f}'
         )
+
         roc_auc = auc(fpr, tpr)
+
         roc_curves.append((fpr, tpr, roc_auc))
 
-        del bb_model, lstm_model, optimizer_backbone, optimizer_lstm
+        del bb_model, dataloader_testing, lstm_model
         gc.collect()
         torch.cuda.empty_cache()
 
     metrics_stats = mean_kfold(metrics)
+
     echo(
         f'Best Threshold: {metrics_stats[0][0]:.10f}'
         + f' ±{metrics_stats[0][1]:.10f}'
@@ -232,6 +266,7 @@ def generalized_model_patient_kfold(
         + f', Accuracy: {metrics_stats[3][0]:.10f}'
         + f' ±{metrics_stats[3][1]:.10f}'
     )
+
     plot_roc_curves(
         roc_curves,
         'Fold with Patient Out',
@@ -264,59 +299,300 @@ def generalized_model_patient_kfold(
         pickle.dump(metrics_stats, file)
 
 
-def test_model_kfold(
+def personalized_model_record_kfold(
         data,
-        dataloader,
-        bb_model,
-        lstm_model,
+        models,
+        loss_func,
+        batch_size,
+        window_batch,
         device,
+        model_params,
+        saved_models=False,
 ):
-    bb_model.eval()
-    lstm_model.eval()
-    preds = []
-    target_labels = []
-    for idx, (windows, targets) in enumerate(dataloader):
-        windows = windows.squeeze(0)
+    num_patients = data.num_patients
+    patients = np.array([i for i in range(num_patients)])
+    data.is_personalized = True
+    data.is_test = False
+    data.test_recording = None
 
-        echo(windows.shape)
+    for patient in patients:
+        metrics = []
+        roc_curves = []
+        data.test_recording = None
+        echo('')
+        echo(f'Model for Patient: {patient + 1}')
+        data.patient = patient
+        num_recordings = data.len_patient_recordings
+        recordings = np.array([i for i in range(num_recordings)])
 
-        windows = windows.to(device)
-        with torch.no_grad:
-            windows = bb_model.get_embeddings(windows)
-            hn = None
-            cn = None
-            targets = targets.squeeze(0)
-            output, _, _ = lstm_model(windows, hn, cn)
-            prob = F.softmax(output, dim=1)
+        for recording in recordings:
+            echo('')
+            echo(f'Recording Out: {recording + 1} / {num_recordings}')
+            data.is_test = False
+            data.is_lstm = False
+            data.test_recording = recording
+            bb_model = models['BB']['model']()
 
-            prob = prob[:, 1]
+            bb_model.to(device)
 
-            preds += list(prob.cpu().detach().numpy())
-            target_labels += list(targets.cpu().detach().numpy())
+            if saved_models:
+                bb_model.load_state_dict(torch.load(
+                    os.path.join(
+                        TRAINED_MODELS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        'Model Feature Level Fusion Backbone'
+                        + f' Patient Out {patient + 1:02d}.pth'
+                        + f' Recording {recording + 1:02d}.pth',
+                    ),
+                ))
+            else:
+                echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
 
-        del windows, targets, prob, output, _
-        gc.collect()
-        torch.cuda.empty_cache()
+                dataloader_training_backbone = create_dataloader(
+                    data,
+                    batch_size,
+                )
 
-    free_memory, total_memory = torch.cuda.mem_get_info(
-        torch.cuda.current_device())
+                optimizer_backbone = models['BB']['optimizer'](
+                    bb_model.parameters(), lr=0.001)
 
-    used_memory = (total_memory - free_memory)
+                bb_model, loss_log = train_classifier(
+                    bb_model,
+                    loss_func,
+                    device,
+                    dataloader_training_backbone,
+                    optimizer_backbone,
+                    models['BB']['num_epochs'],
+                )
 
-    free_memory_mb = free_memory / 1024 ** 2
-    total_memory_mb = total_memory / 1024 ** 2
-    used_memory_mb = used_memory / 1024 ** 2
+                loss_log['name'] = 'Feature Level Fusion Backbone'
 
-    echo(
-        f'Total Memory: {total_memory_mb}MB'
-        + f', Used Memory: {used_memory_mb}:MB'
-        + f', Free Memory: {free_memory_mb}MB'
-    )
+                with open(
+                    os.path.join(
+                        PICKLE_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Loss Feature Level Fusion Backbone'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.pickle'
+                    ),
+                    'wb',
+                ) as file:
+                    pickle.dump(loss_log, file)
 
-    return preds, target_labels
+                plot_multiple_losses(
+                    [loss_log],
+                    os.path.join(
+                        RESULTS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Loss Feature Level Fusion Backbone'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.png',
+                    ),
+                    'Backbone for'
+                    + f'Patient {patient + 1} for Recording {recording + 1}',
+                )
+
+                torch.save(
+                    bb_model.state_dict(),
+                    os.path.join(
+                        TRAINED_MODELS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Model Feature Level Fusion Backbone'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.pth',
+                    ),
+                )
+
+                del dataloader_training_backbone, optimizer_backbone
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            bb_model.eval()
+
+            data.is_lstm = True
+
+            lstm_model = models['LSTM']['model'](*model_params)
+            lstm_model.to(device)
+
+            if saved_models:
+                lstm_model.load_state_dict(torch.load(
+                    os.path.join(
+                        TRAINED_MODELS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Model LSTM with Feature Level Fusion Backbone for'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.pth',
+                    ),
+                ))
+
+            else:
+                echo('TRAINING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
+
+                dataloader_training_lstm = create_dataloader(data, 1)
+
+                optimizer_lstm = models['LSTM']['optimizer'](
+                    lstm_model.parameters(),
+                    lr=0.001,
+                )
+
+                lstm_model, loss_log = train_lstm(
+                    bb_model,
+                    lstm_model,
+                    loss_func,
+                    device,
+                    dataloader_training_lstm,
+                    optimizer_lstm,
+                    models['LSTM']['num_epochs'],
+                    window_batch,
+                )
+
+                loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
+
+                with open(
+                    os.path.join(
+                        PICKLE_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Loss LSTM with Feature Level Fusion Backbone'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.pickle'
+                    ),
+                    'wb',
+                ) as file:
+                    pickle.dump(loss_log, file)
+
+                plot_multiple_losses(
+                    [loss_log],
+                    os.path.join(
+                        RESULTS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Loss LSTM with Feature Level Fusion Backbone'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.png',
+                    ),
+                    'LSTM with Feature Level Fusion Backbone for'
+                    + f' Patient {patient + 1} for'
+                    + f' Recording {recording + 1}',
+                )
+
+                torch.save(
+                    lstm_model.state_dict(),
+                    os.path.join(
+                        TRAINED_MODELS_PATH,
+                        'Personalized Model (Recording KFold)',
+                        f'{USER} {time}'
+                        + ' Model LSTM with Feature Level Fusion Backbone for'
+                        + f' Patient {patient + 1:02d}'
+                        + f' Recording {recording + 1:02d}.pth',
+                    ),
+                )
+
+                del dataloader_training_lstm, optimizer_lstm
+                gc.collect()
+                torch.cuda.empty_cache()
+
+            echo('TESTING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
+
+            data.is_test = True
+            dataloader_testing = create_dataloader(data, 1)
+
+            predictions, target_labels = test_model_kfold(
+                data,
+                dataloader_testing,
+                bb_model,
+                lstm_model,
+                device,
+            )
+
+            best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
+                predictions,
+                target_labels,
+                'ROC Curve of Personalized LSTM with Feature Level Fusion'
+                + f' Backbone\nfor Patient {patient + 1}'
+                + f' Fold with Record Out: {recording + 1}',
+                os.path.join(
+                    RESULTS_PATH,
+                    'Personalized Model (Recording KFold)',
+                    f'{USER} {time}'
+                    + ' ROC Curve LSTM with Feature Level Fusion Backbone'
+                    + f' for Patient {patient + 1:02d}'
+                    + f' Fold with Record Out {recording + 1:02d}.png',
+                ),
+                show=True,
+            )
+
+            accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+
+            metrics.append((best_thr, best_fpr, best_tpr, accuracy))
+
+            echo(
+                f'Best Threshold: {metrics[-1][0]:.10f}'
+                + f', False Positive Rate: {metrics[-1][1]:.10f}'
+                + f', True Positive Rate: {metrics[-1][2]:.10f}'
+                + f', Accuracy: {metrics[-1][3]:.10f}'
+            )
+            roc_auc = auc(fpr, tpr)
+            roc_curves.append((fpr, tpr, roc_auc))
+
+            del bb_model, dataloader_testing, lstm_model
+            gc.collect()
+            torch.cuda.empty_cache()
+
+        metrics_stats = mean_kfold(metrics)
+
+        echo(
+            f'Best Threshold: {metrics_stats[0][0]:.10f}'
+            + f' ±{metrics_stats[0][1]:.10f}'
+            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+            + f' ±{metrics_stats[1][1]:.10f}'
+            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+            + f' ±{metrics_stats[2][1]:.10f}'
+            + f', Accuracy: {metrics_stats[3][0]:.10f}'
+            + f' ±{metrics_stats[3][1]:.10f}'
+        )
+
+        plot_roc_curves(
+            roc_curves,
+            'Fold with Recording Out',
+            'ROC Curves Across K-Folds for Personalized Model'
+            + f' for Patient {patient + 1}',
+            os.path.join(
+                RESULTS_PATH,
+                'Personalized Model (Recording KFold)',
+                f'{USER} {time} ROC Curves Across K-Folds'
+                + f' for Patient {patient + 1:02d}.png',
+            ),
+        )
+
+        with open(
+            os.path.join(
+                PICKLE_PATH,
+                'Personalized Model (Recording KFold)',
+                f'{USER} {time} Metrics' +
+                f' for Patient {patient + 1:02d}.pickle',
+            ),
+            'wb',
+        ) as file:
+            pickle.dump(metrics, file)
+
+        with open(
+            os.path.join(
+                PICKLE_PATH,
+                'Personalized Model (Recording KFold)',
+                f'{USER} {time} Statistical Metrics'
+                + f'for Patient {patient + 1:02d}.pickle',
+            ),
+            'wb',
+        ) as file:
+            pickle.dump(metrics_stats, file)
 
 
-def test_BB(
+def test_backbones(
         data,
         models,
         loss_func,
@@ -340,20 +616,24 @@ def test_BB(
         data.is_lstm = False
         data.patient = patient
 
-        dataloader = create_dataloader(data, batch_size)
+        dataloader_testing = create_dataloader(data, batch_size)
         bb_model = models['BB']['model']()
         bb_model.load_state_dict(torch.load(
-            os.path.join(TRAINED_MODELS_PATH,
-                         'Generalized Model (Patient KFold)',
-                         'Model Feature Level Fusion Backbone'
-                         + f' Patient Out {patient + 1:02d}.pth')))
-
-        # optimizer = models['BB']['optimizer'](bb_model.parameters(), lr=0.001)
+            os.path.join(
+                TRAINED_MODELS_PATH,
+                'Generalized Model (Patient KFold)',
+                'Model Feature Level Fusion Backbone'
+                + f' Patient Out {patient + 1:02d}.pth',
+            ),
+        ))
 
         bb_model.to(device)
 
         predictions, target_labels = test_model_backbone(
-            dataloader, bb_model, device)
+            dataloader_testing,
+            bb_model,
+            device,
+        )
 
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
             predictions,
@@ -371,17 +651,21 @@ def test_BB(
         )
 
         accuracy = calculate_accuracy(predictions, target_labels, best_thr)
+
         metrics.append((best_thr, best_fpr, best_tpr, accuracy))
+
         echo(
             f'Best Threshold: {metrics[-1][0]:.10f}'
             + f', False Positive Rate: {metrics[-1][1]:.10f}'
             + f', True Positive Rate: {metrics[-1][2]:.10f}'
             + f', Accuracy: {metrics[-1][3]:.10f}'
         )
+
         roc_auc = auc(fpr, tpr)
+
         roc_curves.append((fpr, tpr, roc_auc))
 
-        del bb_model
+        del bb_model, dataloader_testing
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -435,252 +719,57 @@ def test_model_backbone(
     return preds, target_labels
 
 
-def personalized_model_record_kfold(
+def test_model_kfold(
         data,
-        models,
-        loss_func,
-        batch_size,
-        window_batch,
+        dataloader,
+        bb_model,
+        lstm_model,
         device,
-        model_params,
 ):
-    num_patients = data.num_patients
-    patients = np.array([i for i in range(num_patients)])
-    data.is_personalized = True
-    data.is_test = False
-    data.test_recording = None
+    bb_model.eval()
+    lstm_model.eval()
+    preds = []
+    target_labels = []
+    for idx, (windows, targets) in enumerate(dataloader):
+        windows = windows.squeeze(0)
 
-    for patient in patients:
-        metrics = []
-        roc_curves = []
-        data.test_recording = None
-        echo('')
-        echo(f'Model for Patient: {patient + 1}')
-        data.patient = patient
-        num_recordings = data.len_patient_recordings
-        recordings = np.array([i for i in range(num_recordings)])
+        echo(windows.shape)
 
-        for recording in recordings:
-            echo('')
-            echo(f'Recording Out: {recording + 1} / {num_recordings}')
-            echo('TRAINING FEATURE LEVEL FUSION BACKBONE')
-            data.is_test = False
-            data.is_lstm = False
-            data.test_recording = recording
-            dataloader = create_dataloader(data, batch_size)
-            bb_model = models['BB']['model']()
-            optimizer_backbone = models['BB']['optimizer'](
-                bb_model.parameters(), lr=0.001)
+        windows = windows.to(device)
 
-            bb_model.to(device)
+        with torch.no_grad:
+            windows = bb_model.get_embeddings(windows)
+            hn = None
+            cn = None
+            targets = targets.squeeze(0)
+            output, _, _ = lstm_model(windows, hn, cn)
+            prob = F.softmax(output, dim=1)
 
-            bb_model, loss_log = train_classifier(
-                bb_model,
-                loss_func,
-                device,
-                dataloader,
-                optimizer_backbone,
-                models['BB']['num_epochs'],
-            )
+            prob = prob[:, 1]
 
-            loss_log['name'] = 'Feature Level Fusion Backbone'
+            preds += list(prob.cpu().detach().numpy())
+            target_labels += list(targets.cpu().detach().numpy())
 
-            with open(
-                os.path.join(
-                    PICKLE_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.pickle'
-                ),
-                'wb',
-            ) as file:
-                pickle.dump(loss_log, file)
+        del windows, targets, prob, output, _
+        gc.collect()
+        torch.cuda.empty_cache()
 
-            plot_multiple_losses(
-                [loss_log],
-                os.path.join(
-                    RESULTS_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Loss Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.png',
-                ),
-                'Backbone for'
-                + f'Patient {patient + 1} for Recording {recording + 1}',
-            )
+    free_memory, total_memory = torch.cuda.mem_get_info(
+        torch.cuda.current_device())
 
-            bb_model.eval()
+    used_memory = (total_memory - free_memory)
 
-            torch.save(
-                bb_model.state_dict(),
-                os.path.join(
-                    TRAINED_MODELS_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Model Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.pth',
-                ),
-            )
+    free_memory_mb = free_memory / 1024 ** 2
+    total_memory_mb = total_memory / 1024 ** 2
+    used_memory_mb = used_memory / 1024 ** 2
 
-            lstm_model = models['LSTM']['model'](*model_params)
-            lstm_model.to(device)
+    echo(
+        f'Total Memory: {total_memory_mb}MB'
+        + f', Used Memory: {used_memory_mb}:MB'
+        + f', Free Memory: {free_memory_mb}MB'
+    )
 
-            echo('TRAINING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
-            data.is_lstm = True
-            dataloader = create_dataloader(data, 1)
-
-            optimizer_lstm = models['LSTM']['optimizer'](
-                lstm_model.parameters(),
-                lr=0.001,
-            )
-
-            lstm_model, loss_log = train_lstm(
-                bb_model,
-                lstm_model,
-                loss_func,
-                device,
-                dataloader,
-                optimizer_lstm,
-                models['LSTM']['num_epochs'],
-                window_batch,
-            )
-
-            loss_log['name'] = 'LSTM with Feature Level Fusion Backbone'
-
-            with open(
-                os.path.join(
-                    PICKLE_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.pickle'
-                ),
-                'wb',
-            ) as file:
-                pickle.dump(loss_log, file)
-
-            plot_multiple_losses(
-                [loss_log],
-                os.path.join(
-                    RESULTS_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Loss LSTM with Feature Level Fusion Backbone'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.png',
-                ),
-                'LSTM with Feature Level Fusion Backbone for'
-                + f' Patient {patient + 1} for'
-                + f' Recording {recording + 1}',
-            )
-
-            torch.save(
-                lstm_model.state_dict(),
-                os.path.join(
-                    TRAINED_MODELS_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' Model LSTM with Feature Level Fusion Backbone for'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.pth',
-                ),
-            )
-
-            echo('TESTING LSTM WITH FEATURE LEVEL FUSION BACKBONE')
-
-            data.is_test = True
-            dataloader = create_dataloader(data, 1)
-
-            predictions, target_labels = test_model_kfold(
-                data,
-                dataloader,
-                bb_model,
-                lstm_model,
-                device,
-            )
-
-            best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
-                predictions,
-                target_labels,
-                'ROC Curve of Personalized LSTM with Feature Level Fusion'
-                + f' Backbone\nfor Patient {patient + 1}'
-                + f' Fold with Record Out: {recording + 1}',
-                os.path.join(
-                    RESULTS_PATH,
-                    'Personalized Model (Recording KFold)',
-                    f'{USER} {time}'
-                    + ' ROC Curve LSTM with Feature Level Fusion Backbone'
-                    + f' for Patient {patient + 1:02d}'
-                    + f' Fold with Record Out {recording + 1:02d}.png',
-                ),
-                show=True,
-            )
-
-            accuracy = calculate_accuracy(predictions, target_labels, best_thr)
-            metrics.append((best_thr, best_fpr, best_tpr, accuracy))
-            echo(
-                f'Best Threshold: {metrics[-1][0]:.10f}'
-                + f', False Positive Rate: {metrics[-1][1]:.10f}'
-                + f', True Positive Rate: {metrics[-1][2]:.10f}'
-                + f', Accuracy: {metrics[-1][3]:.10f}'
-            )
-            roc_auc = auc(fpr, tpr)
-            roc_curves.append((fpr, tpr, roc_auc))
-
-            del bb_model, lstm_model, optimizer_backbone, optimizer_lstm
-            gc.collect()
-            torch.cuda.empty_cache()
-
-        metrics_stats = mean_kfold(metrics)
-        echo(
-            f'Best Threshold: {metrics_stats[0][0]:.10f}'
-            + f' ±{metrics_stats[0][1]:.10f}'
-            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
-            + f' ±{metrics_stats[1][1]:.10f}'
-            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
-            + f' ±{metrics_stats[2][1]:.10f}'
-            + f', Accuracy: {metrics_stats[3][0]:.10f}'
-            + f' ±{metrics_stats[3][1]:.10f}'
-        )
-        plot_roc_curves(
-            roc_curves,
-            'Fold with Recording Out',
-            'ROC Curves Across K-Folds for Personalized Model'
-            + f' for Patient {patient + 1}',
-            os.path.join(
-                RESULTS_PATH,
-                'Personalized Model (Recording KFold)',
-                f'{USER} {time} ROC Curves Across K-Folds'
-                + f' for Patient {patient + 1:02d}.png',
-            ),
-        )
-
-        with open(
-            os.path.join(
-                PICKLE_PATH,
-                'Personalized Model (Recording KFold)',
-                f'{USER} {time} Metrics' +
-                f' for Patient {patient + 1:02d}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(metrics, file)
-
-        with open(
-            os.path.join(
-                PICKLE_PATH,
-                'Personalized Model (Recording KFold)',
-                f'{USER} {time} Statistical Metrics'
-                + f'for Patient {patient + 1:02d}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(metrics_stats, file)
+    return preds, target_labels
 
 
 def compute_train_roc(

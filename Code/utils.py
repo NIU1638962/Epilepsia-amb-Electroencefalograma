@@ -44,6 +44,36 @@ def echo(out: str = "", *outs: str, **kwargs):
     os.system(f"echo '{out}'")
 
 
+def standarize_files(directory):
+    files = sorted(os.listdir(directory))
+
+    for file_name in files:
+        file_parts = file_name.split(' ')
+        to_delete = []
+
+        for index, part in enumerate(file_parts):
+            if part[:4] in ('maed', '2024', '2025'):
+                to_delete.append(index)
+
+        del index, part
+
+        for i, index in enumerate(to_delete):
+            del file_parts[index - i]
+
+        del i, index, to_delete
+
+        new_file_name = ' '.join(file_parts)
+
+        del file_parts
+
+        os.rename(
+            os.path.join(directory, file_name),
+            os.path.join(directory, new_file_name),
+        )
+
+        del new_file_name
+
+
 def plot_multiple_losses(loss_logs: list, path: str, title: str = ''):
     """
     Plot multiple loss curves.
