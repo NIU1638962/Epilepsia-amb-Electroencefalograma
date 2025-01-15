@@ -341,7 +341,7 @@ def personalized_model_record_kfold(
                         TRAINED_MODELS_PATH,
                         'Personalized Model (Recording KFold)',
                         'Model Feature Level Fusion Backbone'
-                        + f' Patient Out {patient + 1:02d}.pth'
+                        + f' Patient Out {patient + 1:02d}'
                         + f' Recording {recording + 1:02d}.pth',
                     ),
                 ))
