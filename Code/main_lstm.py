@@ -99,6 +99,6 @@ if __name__ == '__main__':
     main(
         execute_generalized=True,
         execute_personalized=True,
-        saved_models_generalized=False,
-        saved_models_personalized=False,
+        saved_models_generalized=True,
+        saved_models_personalized=True,
     )

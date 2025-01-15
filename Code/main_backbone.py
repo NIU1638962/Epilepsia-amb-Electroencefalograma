@@ -73,7 +73,7 @@ def main(
 
     echo('')
 
-    for model in models.items():
+    for model in models.values():
         if execute_backbone:
             echo('')
             echo(f'--{model["model_type"]} Model--')

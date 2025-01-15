@@ -624,7 +624,7 @@ def personalized_model_record_kfold(
                     os.path.join(
                         TRAINED_MODELS_PATH,
                         SUB_FOLDER,
-                        + ' Model LSTM with Feature Level Fusion Backbone for'
+                        ' Model LSTM with Feature Level Fusion Backbone for'
                         + f' Patient {patient + 1:02d}'
                         + f' Recording {recording + 1:02d}.pth',
                     ),
@@ -1133,19 +1133,20 @@ def mean_kfold(metrics: List[Tuple[float]]) -> List[Tuple[float, float]]:
 
 
 def gen_personalized_boxplots():
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Personalized Model (Recording KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Personalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
-    
+        'Metrics')])
+
     data = []
     for file in files:
         with open(os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 file), 'rb') as metrics:
-            
+
             data.append(pickle.load(metrics))
-        
+
     num_metrics = len(data[0][0])
     metric_values = {i: [] for i in range(num_metrics)}
 
@@ -1153,10 +1154,12 @@ def gen_personalized_boxplots():
         for i in range(num_metrics):
             metric_values[i].append([recording[i] for recording in patient])
 
-    names = ['Threshold', 'False Positive Rate', 'True Positive Rate', 'Accuracy']
+    names = ['Threshold', 'False Positive Rate',
+             'True Positive Rate', 'Accuracy']
     for (metric_idx, patient_values), name in zip(metric_values.items(), names):
         # Flaten los valores por paciente para cada métrica
-        patient_metrics = [np.array(values).flatten() for values in patient_values]
+        patient_metrics = [np.array(values).flatten()
+                           for values in patient_values]
         print(patient_metrics)
         # Crear boxplot
         plt.figure(figsize=(8, 6))
@@ -1165,49 +1168,52 @@ def gen_personalized_boxplots():
 
         for i, box in enumerate(boxplot['boxes']):
             box.set_facecolor('skyblue')
-            
+
             plt.text(i+1, -0.09, f'({len(data[i])})',
-                    ha='center', va='bottom', fontsize=10, color='black')
-            
-        plt.ylim((0,1))
+                     ha='center', va='bottom', fontsize=10, color='black')
+
+        plt.ylim((0, 1))
         plt.title(f'{name}', fontweight='bold')
         plt.xlabel('Patients (N recordings)', labelpad=15, fontweight='bold')
         plt.ylabel(name+' Values', fontweight='bold')
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
         plt.show()
-        
+
+
 def gen_gen_v_per_boxplots():
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Generalized Model (Patient KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Generalized Model (Patient KFold)'))
     file = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
+        'Metrics')])
 
     with open(os.path.join(
             PICKLE_PATH,
             'Generalized Model (Patient KFold)',
             file[0]), 'rb') as metrics:
-        
+
         gen_metric_values = pickle.load(metrics)
 
-    pickle_files = os.listdir(os.path.join(PICKLE_PATH,'Personalized Model (Recording KFold)'))
+    pickle_files = os.listdir(os.path.join(
+        PICKLE_PATH, 'Personalized Model (Recording KFold)'))
     files = sorted([file for file in pickle_files if file.startswith(
-    'Metrics')])
-    
+        'Metrics')])
+
     data_per = []
     for file in files:
         with open(os.path.join(
                 PICKLE_PATH,
                 'Personalized Model (Recording KFold)',
                 file), 'rb') as metrics:
-            
+
             data_per.append(pickle.load(metrics))
 
-    
     per_metric_values = [tup for sublist in data_per for tup in sublist]
-    
-    names = ['Threshold', 'False Positive Rate', 'True Positive Rate', 'Accuracy']
-    labels=['Generalized', 'Personalized']
-    
+
+    names = ['Threshold', 'False Positive Rate',
+             'True Positive Rate', 'Accuracy']
+    labels = ['Generalized', 'Personalized']
+
     for general_metrics, patient_metrics, name in zip(zip(*gen_metric_values), zip(*per_metric_values), names):
         metrics = [general_metrics, patient_metrics]
 
@@ -1215,24 +1221,24 @@ def gen_gen_v_per_boxplots():
             # Crear violinplot
             plt.figure(figsize=(8, 6))
             violinplot = plt.violinplot(metrics)
-            
+
             positions = range(1, len(metrics) + 1)
             for pos, label in zip(positions, labels):
-                plt.text(pos, -0.09, label, ha='center', va='bottom', fontsize=10, fontweight='bold')
-        
-            
-        else: 
+                plt.text(pos, -0.09, label, ha='center',
+                         va='bottom', fontsize=10, fontweight='bold')
+
+        else:
             # Crear boxplot
             plt.figure(figsize=(8, 6))
             boxplot = plt.boxplot(metrics, labels=labels, patch_artist=True)
-            
+
             for i, box in enumerate(boxplot['boxes']):
                 box.set_facecolor('skyblue')
-                
+
                 # plt.text(i+1, -0.09, f'({len(data[i])})',
                 #         ha='center', va='bottom', fontsize=10, color='black')
-            
-        plt.ylim((0,1))
+
+        plt.ylim((0, 1))
         plt.title(f'{name}', fontweight='bold')
         plt.xlabel('Patients (N recordings)', labelpad=15, fontweight='bold')
         plt.ylabel(name+' Values', fontweight='bold')
