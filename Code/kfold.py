@@ -737,7 +737,7 @@ def test_model_kfold(
 
         windows = windows.to(device)
 
-        with torch.no_grad:
+        with torch.no_grad():
             windows = bb_model.get_embeddings(windows)
             hn = None
             cn = None
