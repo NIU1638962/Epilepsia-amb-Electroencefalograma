@@ -15,6 +15,7 @@ if __name__ == "__main__":
     distribution = []
     dataset = SeizuresDataset(DATA_PATH)
 
+    dataset.is_personalized = True
     dataset.is_lstm = True
     dataset.is_test = True
 
@@ -25,10 +26,11 @@ if __name__ == "__main__":
         for recording in range(dataset.len_patient_recordings):
             dataset.test_recording = recording
             distribution[patient].append([])
-            dataloader = create_dataloader(dataset, 1)
+            dataloader = create_dataloader(dataset, 1, False)
 
             for _, targets in dataloader:
                 del _
+                targets = targets.squeeze(0)
                 num_0 = 0
                 num_1 = 1
                 for target in targets:
@@ -40,5 +42,7 @@ if __name__ == "__main__":
                 distribution[patient][recording].append(num_0)
                 distribution[patient][recording].append(num_1)
 
+    print(distribution)
+
     with open(os.path.join(PICKLE_PATH, 'distribution.pickle'), 'wb') as file:
-        pickle.dump(file)
+        pickle.dump(distribution, file)
