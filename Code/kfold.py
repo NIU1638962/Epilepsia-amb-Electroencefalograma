@@ -150,13 +150,13 @@ def backbones_model_kfold(
         best_thr, best_fpr, best_tpr, thr, fpr, tpr = compute_train_roc(
             predictions,
             target_labels,
-            'ROC Curve of {model["model_type"]} Backbone'
+            f'ROC Curve of {model["model_type"]} Backbone'
             + f'\nFold: {i + 1}',
             os.path.join(
                 RESULTS_PATH,
                 SUB_FOLDER,
                 f'{USER} {time}'
-                + ' ROC Curve of {model["model_type"]} Backbone'
+                + f' ROC Curve of {model["model_type"]} Backbone'
                 + f' Fold: {i + 1:02d}.png',
             ),
             show=True,
@@ -195,7 +195,7 @@ def backbones_model_kfold(
     plot_roc_curves(
         roc_curves,
         'Fold',
-        'ROC Curves Across K-Folds of {model["model_type"]} Backbone',
+        f'ROC Curves Across K-Folds of {model["model_type"]} Backbone',
         os.path.join(
             RESULTS_PATH,
             SUB_FOLDER,
@@ -1184,12 +1184,14 @@ def gen_personalized_boxplots():
 
             plt.text(i+1, -0.09, f'({len(data[i])})',
                      ha='center', va='bottom', fontsize=10, color='black')
-        
+
         for i, point in enumerate(gen_values):
-            plt.scatter(i+1, point, color='red', label='Generalized' if i == 0 else "", zorder=3, marker = 'D')
+            plt.scatter(i+1, point, color='red',
+                        label='Generalized' if i == 0 else "", zorder=3, marker='D')
 
         for x in range(1, len(patient_metrics) + 1):
-            plt.axvline(x=x, color='gray', linestyle='--', linewidth=0.5, zorder=1)
+            plt.axvline(x=x, color='gray', linestyle='--',
+                        linewidth=0.5, zorder=1)
 
         plt.ylim((0, 1))
         plt.title(f'{name}', fontweight='bold')
@@ -1268,5 +1270,5 @@ def gen_gen_v_per_boxplots():
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
         plt.show()
-#gen_personalized_boxplots()
-#gen_gen_v_per_boxplots()
+# gen_personalized_boxplots()
+# gen_gen_v_per_boxplots()
