@@ -1242,7 +1242,8 @@ def gen_gen_v_per_boxplots():
         if name == 'Threshold':
             # Crear violinplot
             plt.figure(figsize=(8, 6))
-            violinplot = plt.violinplot(metrics)
+            plt.violinplot(metrics)
+            plt.xticks([])
 
             positions = range(1, len(metrics) + 1)
             for pos, label in zip(positions, labels):
