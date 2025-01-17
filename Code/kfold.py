@@ -741,7 +741,7 @@ def personalized_model_record_kfold(
             roc_auc = auc(fpr, tpr)
             roc_curves.append((fpr, tpr, roc_auc))
 
-            del bb_model, dataloader_testing, lstm_model
+            del bb_model, lstm_model
             gc.collect()
             torch.cuda.empty_cache()
 
@@ -838,6 +838,10 @@ def personalized_model_record_kfold(
             'wb',
         ) as file:
             pickle.dump(metrics_stats, file)
+
+        del dataloader_testing
+        gc.collect()
+        torch.cuda.empty_cache()
 
 
 def test_backbone(
