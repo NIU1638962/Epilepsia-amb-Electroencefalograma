@@ -789,6 +789,7 @@ def personalized_model_record_kfold(
             )
 
             roc_auc_gen = auc(fpr_gen, tpr_gen)
+            roc_gen = (fpr_gen, tpr_gen, roc_auc_gen) 
 
         echo(
             f'Best Threshold: {metrics_stats[0][0]:.10f}'
@@ -812,7 +813,7 @@ def personalized_model_record_kfold(
                 f'{USER} {time} ROC Curves Across K-Folds'
                 + f' for Patient {patient + 1:02d}.png',
             ),
-            roc_auc_gen,
+            roc_gen,
             
         )
 
