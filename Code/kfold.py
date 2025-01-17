@@ -810,7 +810,7 @@ def personalized_model_record_kfold(
             os.path.join(
                 RESULTS_PATH,
                 SUB_FOLDER,
-                f'{USER} {time} ROC Curves Across K-Folds'
+                f'ROC Curves Across K-Folds'
                 + f' for Patient {patient + 1:02d}.png',
             ),
             roc_gen,
@@ -1097,7 +1097,8 @@ def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_c
             generalized_roc_curve[0],
             generalized_roc_curve[1],
             label=f'Generalized Model AUC: (AUC = {generalized_roc_curve[2]:.5f})',
-            linewidth=3
+            linewidth=3,
+            color = 'black'
         )
     plt.plot(
         [0, 1],
