@@ -518,9 +518,9 @@ def personalized_model_record_kfold(
     data.is_personalized = True
     data.is_test = False
     data.test_recording = None
-
+    metrics = []
     for patient in patients:
-        metrics = []
+        #metrics = []
         roc_curves = []
         data.test_recording = None
         echo('')
@@ -744,8 +744,6 @@ def personalized_model_record_kfold(
             del bb_model, lstm_model
             gc.collect()
             torch.cuda.empty_cache()
-
-        metrics_stats = mean_kfold(metrics)
         
         if(plot_generalized):
             bb_model_generalized = models['BB']['model']()
@@ -791,17 +789,6 @@ def personalized_model_record_kfold(
             roc_auc_gen = auc(fpr_gen, tpr_gen)
             roc_gen = (fpr_gen, tpr_gen, roc_auc_gen) 
 
-        echo(
-            f'Best Threshold: {metrics_stats[0][0]:.10f}'
-            + f' ±{metrics_stats[0][1]:.10f}'
-            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
-            + f' ±{metrics_stats[1][1]:.10f}'
-            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
-            + f' ±{metrics_stats[2][1]:.10f}'
-            + f', Accuracy: {metrics_stats[3][0]:.10f}'
-            + f' ±{metrics_stats[3][1]:.10f}'
-        )
-
         plot_roc_curves(
             roc_curves,
             'Fold with Recording Out',
@@ -842,6 +829,17 @@ def personalized_model_record_kfold(
         del dataloader_testing
         gc.collect()
         torch.cuda.empty_cache()
+    metrics_stats = mean_kfold(metrics)
+    echo(
+            f'Best Threshold: {metrics_stats[0][0]:.10f}'
+            + f' ±{metrics_stats[0][1]:.10f}'
+            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+            + f' ±{metrics_stats[1][1]:.10f}'
+            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+            + f' ±{metrics_stats[2][1]:.10f}'
+            + f', Accuracy: {metrics_stats[3][0]:.10f}'
+            + f' ±{metrics_stats[3][1]:.10f}'
+        )
 
 
 def test_backbone(
