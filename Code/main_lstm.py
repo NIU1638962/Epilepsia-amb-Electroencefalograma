@@ -20,6 +20,7 @@ def main(
         execute_personalized: bool = True,
         saved_models_generalized: bool = False,
         saved_models_personalized: bool = False,
+        plot_generalized: bool = False,
 ):
     """
     Contain main logic.
@@ -91,14 +92,15 @@ def main(
             device,
             model_params,
             saved_models_personalized,
-
+            plot_generalized
         )
 
 
 if __name__ == '__main__':
     main(
-        execute_generalized=True,
+        execute_generalized=False,
         execute_personalized=True,
         saved_models_generalized=True,
         saved_models_personalized=True,
+        plot_generalized = True
     )

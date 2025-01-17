@@ -510,6 +510,7 @@ def personalized_model_record_kfold(
         device,
         model_params,
         saved_models=False,
+        plot_generalized = False
 ):
     SUB_FOLDER = 'Personalized Model (Recording KFold)'
     num_patients = data.num_patients
@@ -745,6 +746,50 @@ def personalized_model_record_kfold(
             torch.cuda.empty_cache()
 
         metrics_stats = mean_kfold(metrics)
+        
+        if(plot_generalized):
+            bb_model_generalized = models['BB']['model']()
+            bb_model_generalized.to(device)
+            lstm_model_generalized = models['LSTM']['model'](*model_params)
+            lstm_model_generalized.to(device)
+
+            bb_model_generalized.load_state_dict(torch.load(
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    SUB_FOLDER,
+                    'Model Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1:02d}.pth',
+                ),
+            ))
+
+            lstm_model_generalized.load_state_dict(torch.load(
+                os.path.join(
+                    TRAINED_MODELS_PATH,
+                    SUB_FOLDER,
+                    'Model LSTM with Feature Level Fusion Backbone for'
+                    + f' Patient {patient + 1:02d}'
+                    + f' Recording {recording + 1:02d}.pth',
+                ),
+            ))
+
+            predictions_generalized, target_labels_generalized = test_model_kfold(
+                data,
+                dataloader_testing,
+                bb_model_generalized,
+                lstm_model_generalized,
+                device,
+            )
+
+            best_thr_gen, best_fpr_gen, best_tpr_gen, thr_gen, fpr_gen, tpr_gen = compute_train_roc(
+                predictions_generalized,
+                target_labels_generalized,
+                'ROC Curve of Generalized LSTM with Feature Level Fusion Backbone'
+                + f'\nFold with Patient Out: {patient + 1}',
+                "Resultado",
+                show=True,
+            )
+
+            roc_auc_gen = auc(fpr_gen, tpr_gen)
 
         echo(
             f'Best Threshold: {metrics_stats[0][0]:.10f}'
@@ -768,6 +813,8 @@ def personalized_model_record_kfold(
                 f'{USER} {time} ROC Curves Across K-Folds'
                 + f' for Patient {patient + 1:02d}.png',
             ),
+            roc_auc_gen,
+            
         )
 
         with open(
@@ -1032,13 +1079,21 @@ def plot_roc(
     plt.close()
 
 
-def plot_roc_curves(roc_curves, label_title, title, file_name):
+def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_curve = None):
     plt.figure(figsize=(10, 8))
     for i, (fpr, tpr, roc_auc) in enumerate(roc_curves):
         plt.plot(
             fpr,
             tpr,
             label=f'{label_title}: {i+1} (AUC = {roc_auc:.5f})',
+        )
+
+    if(generalized_roc_curve != None):
+        plt.plot(
+            generalized_roc_curve[0],
+            generalized_roc_curve[1],
+            label=f'{label_title}: {i+1} (AUC = {generalized_roc_curve[2]:.5f})',
+            linewidth=3
         )
     plt.plot(
         [0, 1],
