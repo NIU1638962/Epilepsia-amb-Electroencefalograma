@@ -815,17 +815,6 @@ def personalized_model_record_kfold(
         ) as file:
             pickle.dump(metrics, file)
 
-        with open(
-            os.path.join(
-                PICKLE_PATH,
-                SUB_FOLDER,
-                f'{USER} {time} Statistical Metrics'
-                + f'for Patient {patient + 1:02d}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(metrics_stats, file)
-
         del dataloader_testing
         gc.collect()
         torch.cuda.empty_cache()
@@ -840,6 +829,17 @@ def personalized_model_record_kfold(
             + f', Accuracy: {metrics_stats[3][0]:.10f}'
             + f' ±{metrics_stats[3][1]:.10f}'
         )
+
+    with open(
+            os.path.join(
+                PICKLE_PATH,
+                SUB_FOLDER,
+                f'{USER} {time} Statistical Metrics'
+                + f'for Patient {patient + 1:02d}.pickle',
+            ),
+            'wb',
+        ) as file:
+            pickle.dump(metrics_stats, file)
 
 
 def test_backbone(
