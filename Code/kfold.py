@@ -1096,7 +1096,7 @@ def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_c
         plt.plot(
             generalized_roc_curve[0],
             generalized_roc_curve[1],
-            label=f'{'Generalized Model AUC'}: {i+1} (AUC = {generalized_roc_curve[2]:.5f})',
+            label=f'Generalized Model AUC: (AUC = {generalized_roc_curve[2]:.5f})',
             linewidth=3
         )
     plt.plot(
