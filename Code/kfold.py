@@ -756,7 +756,7 @@ def personalized_model_record_kfold(
             bb_model_generalized.load_state_dict(torch.load(
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    SUB_FOLDER,
+                    'Generalized Model (Patient KFold)',
                     'Model Feature Level Fusion Backbone'
                     + f' Patient Out {patient + 1:02d}.pth',
                 ),
@@ -765,7 +765,7 @@ def personalized_model_record_kfold(
             lstm_model_generalized.load_state_dict(torch.load(
                 os.path.join(
                     TRAINED_MODELS_PATH,
-                    SUB_FOLDER,
+                    'Generalized Model (Patient KFold)',
                     'Model LSTM with Feature Level Fusion Backbone for'
                     + f' Patient {patient + 1:02d}'
                     + f' Recording {recording + 1:02d}.pth',
