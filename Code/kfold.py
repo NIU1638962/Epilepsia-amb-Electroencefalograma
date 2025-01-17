@@ -68,7 +68,7 @@ def backbones_model_kfold(
                 os.path.join(
                     TRAINED_MODELS_PATH,
                     SUB_FOLDER,
-                    f' Model {model["model_type"]} Backbone'
+                    f'Model {model["model_type"]} Backbone'
                     + f' KFold {i + 1:02d}.pth',
                 ),
             ))
