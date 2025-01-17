@@ -766,9 +766,8 @@ def personalized_model_record_kfold(
                 os.path.join(
                     TRAINED_MODELS_PATH,
                     'Generalized Model (Patient KFold)',
-                    'Model LSTM with Feature Level Fusion Backbone for'
-                    + f' Patient {patient + 1:02d}'
-                    + f' Recording {recording + 1:02d}.pth',
+                    'Model LSTM with Feature Level Fusion Backbone'
+                    + f' Patient Out {patient + 1:02d}.pth',
                 ),
             ))
 
