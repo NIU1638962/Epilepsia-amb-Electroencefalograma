@@ -510,7 +510,7 @@ def personalized_model_record_kfold(
         device,
         model_params,
         saved_models=False,
-        plot_generalized = False
+        plot_generalized=False
 ):
     SUB_FOLDER = 'Personalized Model (Recording KFold)'
     num_patients = data.num_patients
@@ -520,7 +520,7 @@ def personalized_model_record_kfold(
     data.test_recording = None
     metrics = []
     for patient in patients:
-        #metrics = []
+        # metrics = []
         roc_curves = []
         data.test_recording = None
         echo('')
@@ -744,8 +744,8 @@ def personalized_model_record_kfold(
             del bb_model, lstm_model
             gc.collect()
             torch.cuda.empty_cache()
-        
-        if(plot_generalized):
+
+        if (plot_generalized):
             bb_model_generalized = models['BB']['model']()
             bb_model_generalized.to(device)
             lstm_model_generalized = models['LSTM']['model'](*model_params)
@@ -787,7 +787,7 @@ def personalized_model_record_kfold(
             )
 
             roc_auc_gen = auc(fpr_gen, tpr_gen)
-            roc_gen = (fpr_gen, tpr_gen, roc_auc_gen) 
+            roc_gen = (fpr_gen, tpr_gen, roc_auc_gen)
 
         plot_roc_curves(
             roc_curves,
@@ -801,7 +801,7 @@ def personalized_model_record_kfold(
                 + f' for Patient {patient + 1:02d}.png',
             ),
             roc_gen,
-            
+
         )
 
         with open(
@@ -820,26 +820,26 @@ def personalized_model_record_kfold(
         torch.cuda.empty_cache()
     metrics_stats = mean_kfold(metrics)
     echo(
-            f'Best Threshold: {metrics_stats[0][0]:.10f}'
-            + f' ±{metrics_stats[0][1]:.10f}'
-            + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
-            + f' ±{metrics_stats[1][1]:.10f}'
-            + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
-            + f' ±{metrics_stats[2][1]:.10f}'
-            + f', Accuracy: {metrics_stats[3][0]:.10f}'
-            + f' ±{metrics_stats[3][1]:.10f}'
-        )
+        f'Best Threshold: {metrics_stats[0][0]:.10f}'
+        + f' ±{metrics_stats[0][1]:.10f}'
+        + f', False Positive Rate: {metrics_stats[1][0]:.10f}'
+        + f' ±{metrics_stats[1][1]:.10f}'
+        + f', True Positive Rate: {metrics_stats[2][0]:.10f}'
+        + f' ±{metrics_stats[2][1]:.10f}'
+        + f', Accuracy: {metrics_stats[3][0]:.10f}'
+        + f' ±{metrics_stats[3][1]:.10f}'
+    )
 
     with open(
-            os.path.join(
-                PICKLE_PATH,
-                SUB_FOLDER,
-                f'{USER} {time} Statistical Metrics'
-                + f'for Patient {patient + 1:02d}.pickle',
-            ),
-            'wb',
-        ) as file:
-            pickle.dump(metrics_stats, file)
+        os.path.join(
+            PICKLE_PATH,
+            SUB_FOLDER,
+            f'{USER} {time} Statistical Metrics'
+            + f'for Patient {patient + 1:02d}.pickle',
+        ),
+        'wb',
+    ) as file:
+        pickle.dump(metrics_stats, file)
 
 
 def test_backbone(
@@ -1081,7 +1081,7 @@ def plot_roc(
     plt.close()
 
 
-def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_curve = None):
+def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_curve=None):
     plt.figure(figsize=(10, 8))
     for i, (fpr, tpr, roc_auc) in enumerate(roc_curves):
         plt.plot(
@@ -1090,13 +1090,14 @@ def plot_roc_curves(roc_curves, label_title, title, file_name, generalized_roc_c
             label=f'{label_title}: {i+1} (AUC = {roc_auc:.5f})',
         )
 
-    if(generalized_roc_curve != None):
+    if (generalized_roc_curve != None):
         plt.plot(
             generalized_roc_curve[0],
             generalized_roc_curve[1],
-            label=f'Generalized Model AUC: (AUC = {generalized_roc_curve[2]:.5f})',
+            label=f'Generalized Model AUC: (AUC = {
+                generalized_roc_curve[2]:.5f})',
             linewidth=3,
-            color = 'black'
+            color='black'
         )
     plt.plot(
         [0, 1],
@@ -1328,5 +1329,3 @@ def gen_gen_v_per_boxplots():
         plt.grid(axis='y')
         plt.xticks(fontweight='bold')
         plt.show()
-# gen_personalized_boxplots()
-# gen_gen_v_per_boxplots()
