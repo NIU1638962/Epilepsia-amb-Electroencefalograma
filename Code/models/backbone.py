@@ -79,7 +79,7 @@ class InputLevelFusion(nn.Module):
         x = self.fc(x)
 
         return x
-    
+
     def get_embeddings(self, x: Tensor) -> Tensor:
         """
         Forward propagation.
@@ -187,7 +187,7 @@ class FeatureLevelFusion(nn.Module):
         x = self.fc(x)
 
         return x
-    
+
     def get_embeddings(self, x: Tensor) -> Tensor:
         """
         Forward propagation.
@@ -217,4 +217,3 @@ class FeatureLevelFusion(nn.Module):
         x = self.flatten(x)
 
         return x
-
